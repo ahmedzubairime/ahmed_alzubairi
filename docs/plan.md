@@ -8,6 +8,7 @@ The PRD's four stages map to these phases: stage 1 is Phases 1–2, stage 2 is P
 
 - Build phases in this order. Don't add, remove, or reorder phases.
 - Every phase after Phase 0 has two parallel lanes, one per developer, so nobody waits.
+- The designer owns no lane. Design tasks run before a lane, when developers need their tokens or components, or after a lane merges, as polish on those pages. A design task never runs at the same time as a task on the same paths.
 - Each phase is one board in JSM HQ. The lead creates the board and its tasks there, with the product owner, before the phase starts. The next phase can be broken down while the current one is being built.
 - Tasks and their status live only in JSM HQ. This file never lists tasks.
 - A phase is done when all its tasks are merged, its "Done when" checks pass on the latest Vercel preview, it was tested on mobile and desktop, in both languages and both themes, and Ahmed has reviewed and approved it. Production goes live only once, in Phase 7.
@@ -30,8 +31,9 @@ The PRD's four stages map to these phases: stage 1 is Phases 1–2, stage 2 is P
 | Next.js app with TypeScript and Tailwind | §3 |
 | Vercel project: a preview per PR, production from `main` (automatic promotion off) | §3, §4 |
 | `.env.example` with every variable | §11 |
+| `.nvmrc`, and a GitHub Actions CI workflow that runs `pnpm typecheck`, `pnpm lint`, `pnpm test` and `pnpm build` on every PR and on `main` | §10 |
 
-**Done when:** a PR gets a Vercel preview URL, and the home page loads on it.
+**Done when:** a PR gets a Vercel preview URL, and the home page loads on it; CI runs on that PR and passes.
 
 ---
 
@@ -44,7 +46,9 @@ The PRD's four stages map to these phases: stage 1 is Phases 1–2, stage 2 is P
 | Lane | Includes | project.md |
 | --- | --- | --- |
 | **A — Contract + database** | Supabase migrations for all tables, Storage buckets, RLS policies and grants, seeded roles, `has_permission`, the user and service clients, generated types. `PERMISSIONS`, limits and shared types for every API route. | §5, §7, §8 |
-| **B — Auth + shells** | Clerk sign in / sign up with `arSA`, onboarding page, `profiles` row, middleware, return path. `next-intl` routing, RTL, theme switch, design tokens, fonts. Public header and footer, empty account and dashboard layouts. | §6.1, §6.16, §13 |
+| **B — Auth + shells** | Clerk sign in / sign up with `arSA`, onboarding page, `profiles` row, middleware, return path. `next-intl` routing, RTL, theme switch. Public header and footer, empty account and dashboard layouts. | §6.1, §6.16, §13 |
+
+The designer builds the design tokens and fonts first. Lane B builds on them.
 
 Lane B also checks the two items in §14 "To verify in Phase 1" and reports the result.
 
@@ -139,11 +143,11 @@ Lane A adds a newsletter checkbox to the email gate after Lane B is merged.
 
 **Goal:** the core flow works on production, with no open security issues.
 
-**Keys needed:** the Cloudflare R2 bucket and the GitHub Actions secrets in §11. At the end, the product owner creates the Supabase prod project and sets Vercel's production variables. Before this phase starts, §14 decisions 1, 2, 6, 7, 8, 10 and 11 must be settled.
+**Keys needed:** the Cloudflare R2 bucket and the GitHub Actions secrets in §11. At the end, the product owner creates the Supabase prod project and a Clerk production instance on the site's domain, and sets Vercel's production variables. Before this phase starts, §14 decisions 1, 2, 6, 7, 8, 10 and 11 must be settled.
 
 | Lane | Includes | project.md |
 | --- | --- | --- |
 | **A — Security** | Fix open review findings, security headers, final pass on every rule in §9, the malware scanning decision, team 2FA if chosen. | §9, §14 |
-| **B — Backups + launch** | Nightly backup job, one tested restore, responsive and empty-state polish, run the full core flow on `main`. | §2, §6.26 |
+| **B — Backups + launch** | Nightly backup job, one tested restore, responsive and empty-state polish, `docs/launch.md` runbook, run the full core flow on `main`. | §2, §4, §6.26 |
 
-**Done when:** the product owner creates the Supabase prod project, applies every migration to it, sets Vercel's production variables and promotes the build; Ahmed's real content and the approved legal text are entered; a first backup is verified; then all ten steps of the core flow (§2) pass on the production URL.
+**Done when:** the product owner follows `docs/launch.md`: creates the Supabase prod project and the Clerk production instance, applies every migration, sets Vercel's production variables and promotes the build; Ahmed's real content and the approved legal text are entered; a first backup is verified; then all ten steps of the core flow (§2) pass on the production URL.

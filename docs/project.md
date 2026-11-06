@@ -80,7 +80,7 @@ The whole product in one flow. When this works end to end, the product is done.
 
 | Environment | What it is | Who deploys |
 | --- | --- | --- |
-| Production | Vercel production (from `main`) + the Supabase prod project | Product owner only: merges to `main`, runs any migration, then promotes the build |
+| Production | Vercel production (from `main`) + the Supabase prod project + a Clerk production instance | Product owner only: merges to `main`, runs any migration, then promotes the build |
 | Preview | A Vercel preview deployment per PR + the Supabase dev project | Automatic on every push to a PR |
 | Local | `pnpm dev` + the Supabase dev project | Each developer |
 
@@ -88,10 +88,12 @@ The whole product in one flow. When this works end to end, the product is done.
 | --- | --- |
 | Shared dev database | Every developer agent and every preview share the dev project. Never apply an unmerged migration to it. Test new migrations on pglite (`packages/db/supabase-pglite.ts`). No local Supabase or Docker database. |
 | Migrations | Run only after their PR merges: agents apply them to dev through the Supabase MCP (scoped to the dev project), recording the file's version. The product owner applies all of them to prod when production goes live. Every migration is additive ("expand and contract"): the live version keeps working while it runs. Drops and renames come in a later PR, once no deployed code uses the old shape. |
-| Production rollout | Production goes live once, in Phase 7: the product owner creates the Supabase prod project, applies every migration, sets Vercel's production variables, and promotes the build. Until then, a merge to `main` builds production but nothing is promoted. Vercel's automatic production promotion is off. |
+| Production rollout | Production goes live once, in Phase 7, following `docs/launch.md`: the product owner creates the Supabase prod project and the Clerk production instance, applies every migration, sets Vercel's production variables, and promotes the build. Until then, a merge to `main` builds production but nothing is promoted. Vercel's automatic production promotion is off. |
 | Dev data is throwaway | Only migration files reach production. Never copy data from dev. Real content is entered in production at launch. |
 | Never deploy production | Only the product owner merges to `main` and promotes production |
 | Real client data | Never put real client names, letters or certificates in dev or in test fixtures. Use made-up data. |
+| Clerk instances | Dev and previews use Clerk's development instance with test keys. Production holds real client accounts, so it uses its own Clerk production instance on the site's domain. Never launch on the development instance. Connect the production instance to the Supabase prod project as a third-party auth provider. |
+| CI | GitHub Actions runs `pnpm typecheck`, `pnpm lint`, `pnpm test` and `pnpm build` on every PR and on `main`. |
 
 ---
 
@@ -684,10 +686,12 @@ packages/
 supabase/
   migrations/     # SQL migrations (Supabase CLI)
 .github/
-  workflows/      # nightly backup
+  workflows/      # CI, nightly backup
 docs/
   project.md      # this file
   plan.md         # phases (human-written)
+  launch.md       # production runbook, written in Phase 7
+.nvmrc            # Node version for CI and developers
 ```
 
 ---
@@ -715,7 +719,7 @@ GitHub Actions secrets, not app variables: `BACKUP_DATABASE_URL`, `BACKUP_ENCRYP
 
 `.env.example` lists every app variable with no values. `.env` is never committed.
 
-Each Vercel environment gets its Supabase project's values: Production → the prod project, Preview and Development → the dev project.
+Each Vercel environment gets its own Supabase and Clerk values: Production → the prod project and the Clerk production instance, Preview and Development → the dev project and the Clerk development instance.
 
 ---
 
