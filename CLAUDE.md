@@ -27,11 +27,12 @@ Arabic text in the docs is exact UI copy or a domain term. Use it as written.
 - Run all checks (see Commands). All must pass.
 - Check your UI change in Arabic and English, in light and dark, and at 375 px.
 - PR body: what changed, how you tested, and the task's done-when list with each item checked or explained.
-- Vercel deploys a preview of every PR. Check your change on it, and put the preview URL in the PR. If the repo isn't connected to Vercel yet (early Phase 0), say so in the PR and skip this check.
+- Commit under your own name, as `<Name> <lowercase-name@agents.jsmhq.invalid>`.
+- The Deploy workflow deploys a preview of every PR. Check your change on it, and put the preview URL in the PR. If the Deploy workflow can't run yet (early Phase 0), say so in the PR and skip this check.
 
 ## Checking your change on a Vercel preview
 
-- Get the preview URL from GitHub, never from the branch name (Vercel shortens long names): the Vercel comment on your PR (`gh pr view <n> --comments`), or the PR's deployment status (`gh api repos/<owner>/<repo>/deployments?ref=<branch>`). Wait until the deployment succeeds.
+- Get the preview URL from the Deploy workflow's comment on your PR (`gh pr view <n> --comments`), never from the branch name. Wait until the Deploy workflow passes.
 - Previews are protected. Send the header `x-vercel-protection-bypass: $VERCEL_AUTOMATION_BYPASS_SECRET` on every request. For browser tests, also send `x-vercel-set-bypass-cookie: true` on the first request.
 - If a preview URL is blocked by your sandbox, call `request_access` for `*.vercel.app` (all previews) rather than the single URL.
 

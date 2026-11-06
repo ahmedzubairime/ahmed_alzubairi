@@ -58,7 +58,7 @@ The whole product in one flow. When this works end to end, the product is done.
 | Data access | `supabase-js`, Postgres functions (`rpc()`) | User client (the user's Clerk token, RLS applies) and a server-only service client (secret key). Rules that must hold under concurrency run inside Postgres functions. |
 | Migrations + types | Supabase CLI | SQL files in `supabase/migrations`; types generated into `packages/db/types.ts` (`pnpm db:types`). Tests run on pglite with Supabase's roles stubbed, never a local Supabase stack. |
 | File storage | Supabase Storage (`supabase-js`) | Buckets in §7, created by migrations. The browser uploads straight to Storage with a one-time signed URL. |
-| Hosting | Vercel | Preview deployment per PR; production from `main`. Bodies are capped at 4.5 MB, so files never pass through our routes, in either direction. |
+| Hosting | Vercel | Preview deployment per PR; production from `main`. GitHub Actions deploys both with the Vercel CLI; Vercel's Git integration is not used. Bodies are capped at 4.5 MB, so files never pass through our routes, in either direction. |
 | Auth | Clerk | Sign in / sign up UI (`arSA` localization from `@clerk/localizations`), sessions, middleware. Supabase accepts Clerk session tokens (third-party auth), so RLS reads the user ID from `auth.jwt()->>'sub'`. |
 | Email | Resend + React Email | All transactional email, sent from the site's domain with SPF and DKIM. Newsletters use Resend Broadcasts. |
 | Security | Arcjet | On every public form and download gate: a fixed-window rate limit per route + IP, bot detection and Shield. Fails open: an Arcjet error or timeout lets the request through and is logged. |
@@ -81,14 +81,14 @@ The whole product in one flow. When this works end to end, the product is done.
 | Environment | What it is | Who deploys |
 | --- | --- | --- |
 | Production | Vercel production (from `main`) + the Supabase prod project + a Clerk production instance | Product owner only: merges to `main`, runs any migration, then promotes the build |
-| Preview | A Vercel preview deployment per PR + the Supabase dev project | Automatic on every push to a PR |
+| Preview | A Vercel preview deployment per PR + the Supabase dev project | Automatic on every push to a same-repo PR: the Deploy workflow deploys it with the Vercel CLI and comments the URL on the PR. CLI deploys carry no Vercel system variables at build time. |
 | Local | `pnpm dev` + the Supabase dev project | Each developer |
 
 | Rule | Detail |
 | --- | --- |
 | Shared dev database | Every developer agent and every preview share the dev project. Never apply an unmerged migration to it. Test new migrations on pglite (`packages/db/supabase-pglite.ts`). No local Supabase or Docker database. |
 | Migrations | Run only after their PR merges: agents apply them to dev through the Supabase MCP (scoped to the dev project), recording the file's version. The product owner applies all of them to prod when production goes live. Every migration is additive ("expand and contract"): the live version keeps working while it runs. Drops and renames come in a later PR, once no deployed code uses the old shape. |
-| Production rollout | Production goes live once, in Phase 7, following `docs/launch.md`: the product owner creates the Supabase prod project and the Clerk production instance, applies every migration, sets Vercel's production variables, and promotes the build. Until then, a merge to `main` builds production but nothing is promoted. Vercel's automatic production promotion is off. |
+| Production rollout | Production goes live once, in Phase 7, following `docs/launch.md`: the product owner creates the Supabase prod project and the Clerk production instance, applies every migration, sets Vercel's production variables, and promotes the build. Until then, a merge to `main` makes a staged production build (the Deploy workflow runs `vercel deploy --prod --skip-domain`) and nothing is promoted. CLI deploys carry no Vercel system variables at build time. |
 | Dev data is throwaway | Only migration files reach production. Never copy data from dev. Real content is entered in production at launch. |
 | Never deploy production | Only the product owner merges to `main` and promotes production |
 | Real client data | Never put real client names, letters or certificates in dev or in test fixtures. Use made-up data. |
@@ -686,7 +686,7 @@ packages/
 supabase/
   migrations/     # SQL migrations (Supabase CLI)
 .github/
-  workflows/      # CI, nightly backup
+  workflows/      # CI, deploys (Vercel CLI), nightly backup
 docs/
   project.md      # this file
   plan.md         # phases (human-written)
@@ -715,7 +715,7 @@ docs/
 | `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST` | Client + server | Yes |
 | `NEXT_PUBLIC_APP_URL` | Client + server | Yes |
 
-GitHub Actions secrets, not app variables: `BACKUP_DATABASE_URL`, `BACKUP_ENCRYPTION_KEY`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `BACKUP_STORAGE_ACCESS_KEY_ID`, `BACKUP_STORAGE_SECRET_ACCESS_KEY`.
+GitHub Actions secrets, not app variables: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`, `BACKUP_DATABASE_URL`, `BACKUP_ENCRYPTION_KEY`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `BACKUP_STORAGE_ACCESS_KEY_ID`, `BACKUP_STORAGE_SECRET_ACCESS_KEY`.
 
 `.env.example` lists every app variable with no values. `.env` is never committed.
 
