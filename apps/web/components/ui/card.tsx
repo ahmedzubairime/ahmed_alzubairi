@@ -82,7 +82,7 @@ export function PageHeader({
             {eyebrow}
           </p>
         )}
-        <h1 className="text-balance text-3xl leading-tight text-text md:text-4xl">{title}</h1>
+        <h1 className="text-balance text-2xl leading-tight text-text sm:text-3xl md:text-4xl">{title}</h1>
         {intro && <p className="mt-3 max-w-prose text-pretty text-lg text-text-secondary">{intro}</p>}
       </div>
       {actions && <div className="flex shrink-0 flex-wrap gap-2">{actions}</div>}

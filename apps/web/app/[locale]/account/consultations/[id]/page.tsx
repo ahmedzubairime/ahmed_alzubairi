@@ -64,13 +64,18 @@ export default async function ConsultationPage({ params }: { params: Promise<{ l
           {t("back")}
         </ButtonLink>
 
-        {/* The status stays in view while the chat scrolls (§6.17). */}
-        <header className="sticky top-0 z-10 -mx-4 border-b border-text/10 bg-background/95 px-4 py-4 backdrop-blur sm:mx-0 sm:rounded-lg sm:border sm:px-5">
+        {/* The status sits at the top (§6.17). From `sm` up it stays in view while the chat scrolls; on a phone
+            it scrolls away, so it never covers the chat, and a long title shows 2 lines (the full one in `title`). */}
+        <header className="-mx-4 border-b border-text/10 bg-background/95 px-4 py-4 backdrop-blur sm:sticky sm:top-0 sm:z-10 sm:mx-0 sm:rounded-lg sm:border sm:px-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex min-w-0 flex-wrap items-center gap-3">
               <span className="sr-only">{t("status")}</span>
               <StatusPill kind="consultation" status={consultation.status} />
-              <h1 dir="auto" className="min-w-0 text-start text-2xl wrap-anywhere">
+              <h1
+                dir="auto"
+                title={consultation.title}
+                className="line-clamp-2 min-w-0 text-start text-2xl wrap-anywhere sm:line-clamp-none"
+              >
                 {consultation.title}
               </h1>
             </div>

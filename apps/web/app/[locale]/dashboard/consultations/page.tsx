@@ -78,7 +78,7 @@ export default async function ConsultationsPage({
           maxLength={200}
           className="min-w-0 flex-1 basis-64"
         />
-        <Select label={t("filters.status")} name="status" defaultValue={list.status ?? ""} className="min-w-0 basis-44">
+        <Select label={t("filters.status")} name="status" defaultValue={list.status ?? ""} className="min-w-0 basis-full sm:basis-44">
           <option value="">{t("filters.all")}</option>
           {CONSULTATION_STATUSES.map((status) => (
             <option key={status} value={status}>
@@ -86,7 +86,7 @@ export default async function ConsultationsPage({
             </option>
           ))}
         </Select>
-        <Select label={t("filters.kind")} name="kind" defaultValue={list.kind ?? ""} className="min-w-0 basis-44">
+        <Select label={t("filters.kind")} name="kind" defaultValue={list.kind ?? ""} className="min-w-0 basis-full sm:basis-44">
           <option value="">{t("filters.all")}</option>
           {CONSULTATION_KINDS.map((kind) => (
             <option key={kind} value={kind}>
