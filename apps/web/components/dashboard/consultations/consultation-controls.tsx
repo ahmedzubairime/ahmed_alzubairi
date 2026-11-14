@@ -58,7 +58,7 @@ export function StatusControl({
           value={value}
           onChange={(event) => setValue(event.target.value as ConsultationStatus)}
           disabled={busy}
-          className="min-w-0 basis-48"
+          className="min-w-0 flex-1 basis-48"
         >
           {OPEN_STATUSES.map((option) => (
             <option key={option} value={option}>
@@ -143,7 +143,7 @@ export function AssignControl({
           value={value}
           onChange={(event) => setValue(event.target.value)}
           disabled={busy}
-          className="min-w-0 basis-64"
+          className="min-w-0 basis-full"
         >
           <option value="">{t("none")}</option>
           {assignees.map((member) => (
