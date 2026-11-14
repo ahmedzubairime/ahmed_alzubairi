@@ -71,6 +71,12 @@ function PdfPage({
   return (
     <canvas
       ref={canvas}
+      // pdf.js draws text glyph by glyph with the canvas's own direction, which
+      // would otherwise inherit the page's: on an Arabic page every line came
+      // out shifted and out of order. A file's layout never follows the UI
+      // language, so the canvas is always ltr; captions and buttons around it
+      // keep the page's direction.
+      dir="ltr"
       data-page={number}
       role="img"
       aria-label={label}
