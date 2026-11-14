@@ -87,11 +87,16 @@ export function TextBlock({ text }: { text: string }) {
 }
 
 /** A link to a section's list page, after its content. */
-export function MoreLink({ href, label }: { href: string; label: string }) {
+/**
+ * A text link with an arrow. `back` turns it around and puts it first, like
+ * PageHero's back link, for links that lead back up, such as "All services".
+ */
+export function MoreLink({ href, label, back = false }: { href: string; label: string; back?: boolean }) {
   return (
     <Link href={href} className={cx(TEXT_LINK, "focus-visible:outline-ring")}>
+      {back && <ArrowForwardIcon aria-hidden="true" className="size-4 rotate-180" />}
       {label}
-      <ArrowForwardIcon aria-hidden="true" className="size-4" />
+      {!back && <ArrowForwardIcon aria-hidden="true" className="size-4" />}
     </Link>
   );
 }
