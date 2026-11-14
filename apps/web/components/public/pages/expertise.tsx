@@ -112,7 +112,7 @@ export function ExpertiseDetailPage({
             </ul>
           </PageSection>
         )}
-        <MoreLink href="/expertise" label={t("allExpertise")} />
+        <MoreLink href="/expertise" label={t("allExpertise")} back />
       </div>
       <ConsultationCta />
     </>

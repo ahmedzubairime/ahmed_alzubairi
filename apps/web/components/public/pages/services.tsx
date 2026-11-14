@@ -141,7 +141,7 @@ export function ServiceDetailPage({
         )}
         <div className="flex flex-wrap items-center gap-6">
           {request()}
-          <MoreLink href="/services" label={t("allServices")} />
+          <MoreLink href="/services" label={t("allServices")} back />
         </div>
       </div>
       <ConsultationCta />
