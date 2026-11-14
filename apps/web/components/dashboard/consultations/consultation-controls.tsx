@@ -58,7 +58,7 @@ export function StatusControl({
           value={value}
           onChange={(event) => setValue(event.target.value as ConsultationStatus)}
           disabled={busy}
-          className="min-w-0 flex-1 basis-48"
+          className="min-w-0 basis-full"
         >
           {OPEN_STATUSES.map((option) => (
             <option key={option} value={option}>
