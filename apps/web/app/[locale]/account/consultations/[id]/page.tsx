@@ -54,6 +54,24 @@ export default async function ConsultationPage({ params }: { params: Promise<{ l
     attachments: filesByMessage.get(message.id) ?? [],
   }));
 
+  // The service and opened date: inside the pinned header from `sm` up, below it on a phone.
+  const meta = (
+    <dl className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+      {detail.serviceTitle && (
+        <div className="flex gap-1.5">
+          <dt className="text-text-secondary">{t("service")}:</dt>
+          <dd className="font-semibold">{detail.serviceTitle}</dd>
+        </div>
+      )}
+      <div className="flex gap-1.5">
+        <dt className="text-text-secondary">{t("opened")}:</dt>
+        <dd className="font-semibold">
+          <LocalTime value={consultation.createdAt} />
+        </dd>
+      </div>
+    </dl>
+  );
+
   return (
     <NextIntlClientProvider
       locale={locale}
@@ -64,38 +82,35 @@ export default async function ConsultationPage({ params }: { params: Promise<{ l
           {t("back")}
         </ButtonLink>
 
-        {/* The status sits at the top (§6.17). From `sm` up it stays in view while the chat scrolls; on a phone
-            it scrolls away, so it never covers the chat, and a long title shows 2 lines (the full one in `title`). */}
-        <header className="-mx-4 border-b border-text/10 bg-background/95 px-4 py-4 backdrop-blur sm:sticky sm:top-0 sm:z-10 sm:mx-0 sm:rounded-lg sm:border sm:px-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex min-w-0 flex-wrap items-center gap-3">
+        {/* The status is always visible at the top (§6.17): the header stays in view while the chat scrolls.
+            On a phone the pinned part is one compact row, the status and the title on one line; the full
+            title, the details and Refresh follow below it, in the page flow. */}
+        <header className="sticky top-0 z-10 -mx-4 border-b border-text/10 bg-background/95 px-4 py-3.5 backdrop-blur sm:mx-0 sm:rounded-lg sm:border sm:px-5 sm:py-4">
+          <div className="flex items-center justify-between gap-3 sm:flex-wrap">
+            <div className="flex min-w-0 items-center gap-3 sm:flex-wrap">
               <span className="sr-only">{t("status")}</span>
-              <StatusPill kind="consultation" status={consultation.status} />
+              <StatusPill kind="consultation" status={consultation.status} className="shrink-0" />
               <h1
                 dir="auto"
-                title={consultation.title}
-                className="line-clamp-2 min-w-0 text-start text-2xl wrap-anywhere sm:line-clamp-none"
+                className="min-w-0 truncate text-start text-lg sm:overflow-visible sm:text-2xl sm:whitespace-normal sm:wrap-anywhere"
               >
                 {consultation.title}
               </h1>
             </div>
-            <RefreshButton />
-          </div>
-          <dl className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm">
-            {detail.serviceTitle && (
-              <div className="flex gap-1.5">
-                <dt className="text-text-secondary">{t("service")}:</dt>
-                <dd className="font-semibold">{detail.serviceTitle}</dd>
-              </div>
-            )}
-            <div className="flex gap-1.5">
-              <dt className="text-text-secondary">{t("opened")}:</dt>
-              <dd className="font-semibold">
-                <LocalTime value={consultation.createdAt} />
-              </dd>
+            <div className="hidden sm:block">
+              <RefreshButton />
             </div>
-          </dl>
+          </div>
+          <div className="mt-3 hidden sm:block">{meta}</div>
         </header>
+        {/* The full title is in the h1 for screen readers; this copy is for sighted phone users. */}
+        <div className="-mt-2 space-y-3 sm:hidden">
+          <p aria-hidden="true" dir="auto" className="text-start font-heading text-2xl leading-tight font-bold wrap-anywhere">
+            {consultation.title}
+          </p>
+          {meta}
+          <RefreshButton />
+        </div>
 
         <Card as="section" compact aria-labelledby="request-heading" className="space-y-2">
           <h2 id="request-heading" className="text-lg">
