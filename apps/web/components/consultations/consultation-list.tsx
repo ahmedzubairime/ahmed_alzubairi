@@ -37,12 +37,13 @@ export function ConsultationList({ consultations }: { consultations: Consultatio
               FOCUS_RING,
             )}
           >
-            <div className="flex flex-wrap items-start justify-between gap-3">
+            {/* On a phone the status sits above the title, so a long title gets the card's full width. */}
+            <div className="flex flex-col items-start gap-2 sm:flex-row sm:justify-between sm:gap-3">
+              <StatusPill kind="consultation" status={item.status} className="sm:order-last" />
               {/* Text, never HTML (§9). */}
-              <h2 dir="auto" className="min-w-0 flex-1 text-start text-lg wrap-anywhere">
+              <h2 dir="auto" className="w-full min-w-0 text-start text-lg wrap-anywhere sm:w-auto sm:flex-1">
                 {item.title}
               </h2>
-              <StatusPill kind="consultation" status={item.status} />
             </div>
             <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
               <div className="min-w-0">

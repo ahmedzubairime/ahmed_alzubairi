@@ -125,25 +125,25 @@ export function ConsultationThread({
         </p>
       ) : (
         <div className="space-y-2">
-        <Composer
-          label={t("reply")}
-          value={text}
-          onChange={setText}
-          files={filesState.chips}
-          onAttach={filesState.attach}
-          onRemoveFile={filesState.remove}
-          onSend={send}
-          sending={sending}
-          error={error}
-        />
-        {/* A reply whose only file failed has nothing "ready", so the Composer can't send it: retry here. */}
-        {failed && !sending && (
-          <div className="flex justify-end">
-            <Button type="button" variant="secondary" size="sm" onClick={send}>
-              {t("retry")}
-            </Button>
-          </div>
-        )}
+          <Composer
+            label={t("reply")}
+            value={text}
+            onChange={setText}
+            files={filesState.chips}
+            onAttach={filesState.attach}
+            onRemoveFile={filesState.remove}
+            onSend={send}
+            sending={sending}
+            error={error}
+          />
+          {/* A reply whose only file failed has nothing "ready", so the Composer can't send it: retry here. */}
+          {failed && !sending && (
+            <div className="flex justify-end">
+              <Button type="button" variant="secondary" size="sm" onClick={send}>
+                {t("retry")}
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </div>

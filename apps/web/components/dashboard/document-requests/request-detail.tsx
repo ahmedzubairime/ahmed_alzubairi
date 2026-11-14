@@ -65,7 +65,9 @@ export async function RequestDetail({
             <LocalTime value={request.createdAt} locale={locale} />
           </Field>
           <Field label={t("detail.purpose")} wide>
-            <span className="whitespace-pre-line">{request.purpose}</span>
+            <span dir="auto" className="block text-start whitespace-pre-line wrap-anywhere">
+              {request.purpose}
+            </span>
           </Field>
           {request.grantedAt && (
             <Field label={t("detail.granted")}>
