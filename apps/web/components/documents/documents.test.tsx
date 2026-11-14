@@ -551,3 +551,36 @@ describe("read", () => {
     expect(await readOwnRequest("user_client", REQUEST.id, "en", none.client)).toBeNull();
   });
 });
+
+describe("PdfPages direction", () => {
+  it("draws each page on an ltr canvas on an Arabic page, and leaves the captions to the page", async () => {
+    // The real component, not the stand-in the viewer tests use.
+    const { PdfPages: RealPdfPages } = await vi.importActual<typeof import("./pdf-pages")>("./pdf-pages");
+    const page = {
+      getViewport: ({ scale }: { scale: number }) => ({ width: 600 * scale, height: 800 * scale }),
+      render: () => ({ cancel: vi.fn(), promise: Promise.resolve() }),
+    };
+    const load = (async () => ({
+      getDocument: () => ({
+        destroy: vi.fn(),
+        promise: Promise.resolve({ numPages: 2, getPage: async () => page }),
+      }),
+    })) as unknown as typeof import("./pdf-pages").loadPdfJs;
+    const { container } = withIntl(
+      <div dir="rtl">
+        <RealPdfPages data={new ArrayBuffer(8)} title="شهادة" onError={vi.fn()} load={load} />
+      </div>,
+      "ar",
+    );
+    for (let round = 0; round < 3; round += 1) {
+      await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 0))));
+    }
+    const canvases = [...container.querySelectorAll("canvas")];
+    expect(canvases).toHaveLength(2);
+    for (const canvas of canvases) expect(canvas.getAttribute("dir")).toBe("ltr");
+    // The page label stays in the page's own direction.
+    const caption = container.querySelector("figcaption");
+    expect(caption?.textContent).toBe("الصفحة 1 من 2");
+    expect(caption?.closest("[dir]")?.getAttribute("dir")).toBe("rtl");
+  });
+});
