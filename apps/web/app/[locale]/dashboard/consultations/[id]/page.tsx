@@ -92,6 +92,23 @@ export default async function ConsultationPage({ params }: { params: Params }) {
   };
   const client = view.client.name || t("list.noName");
 
+  // The client, service and opened date: inside the pinned header from `sm` up, below it on a phone.
+  const meta = (
+    <p className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-text-secondary">
+      <span>
+        {t("detail.client")}: <bdi className="font-semibold text-text">{client}</bdi>
+      </span>
+      {serviceTitle && (
+        <span>
+          {t("detail.service")}: <span className="font-semibold text-text">{serviceTitle}</span>
+        </span>
+      )}
+      <span>
+        {t("detail.opened")}: <LocalTime value={consultation.createdAt} locale={locale} />
+      </span>
+    </p>
+  );
+
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
       <div className="space-y-6">
@@ -99,32 +116,35 @@ export default async function ConsultationPage({ params }: { params: Params }) {
           {t("detail.back")}
         </ButtonLink>
 
-        {/* The status stays in view while the chat scrolls (§6.17). */}
-        <header className="sticky top-0 z-10 -mx-4 border-b border-text/10 bg-background/95 px-4 py-4 backdrop-blur sm:mx-0 sm:rounded-lg sm:border sm:px-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex min-w-0 flex-wrap items-center gap-3">
+        {/* The status is always visible at the top (§6.17): the header stays in view while the chat scrolls.
+            On a phone the pinned part is one compact row, the status and the title on one line; the full
+            title, the details and Refresh follow below it, in the page flow. */}
+        <header className="sticky top-0 z-10 -mx-4 border-b border-text/10 bg-background/95 px-4 py-3.5 backdrop-blur sm:mx-0 sm:rounded-lg sm:border sm:px-5 sm:py-4">
+          <div className="flex items-center justify-between gap-3 sm:flex-wrap">
+            <div className="flex min-w-0 items-center gap-3 sm:flex-wrap">
               <span className="sr-only">{t("status.label")}</span>
-              <StatusPill kind="consultation" status={consultation.status} />
-              <h1 dir="auto" className="min-w-0 text-start text-2xl wrap-anywhere">
+              <StatusPill kind="consultation" status={consultation.status} className="shrink-0" />
+              <h1
+                dir="auto"
+                className="min-w-0 truncate text-start text-lg sm:overflow-visible sm:text-2xl sm:whitespace-normal sm:wrap-anywhere"
+              >
                 {consultation.title}
               </h1>
             </div>
-            <RefreshButton />
+            <div className="hidden sm:block">
+              <RefreshButton />
+            </div>
           </div>
-          <p className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-text-secondary">
-            <span>
-              {t("detail.client")}: <bdi className="font-semibold text-text">{client}</bdi>
-            </span>
-            {serviceTitle && (
-              <span>
-                {t("detail.service")}: <span className="font-semibold text-text">{serviceTitle}</span>
-              </span>
-            )}
-            <span>
-              {t("detail.opened")}: <LocalTime value={consultation.createdAt} locale={locale} />
-            </span>
-          </p>
+          <div className="mt-2 hidden sm:block">{meta}</div>
         </header>
+        {/* The full title is in the h1 for screen readers; this copy is for sighted phone users. */}
+        <div className="-mt-2 space-y-3 sm:hidden">
+          <p aria-hidden="true" dir="auto" className="text-start font-heading text-2xl leading-tight font-bold wrap-anywhere">
+            {consultation.title}
+          </p>
+          {meta}
+          <RefreshButton />
+        </div>
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
           <div className="min-w-0 space-y-6">

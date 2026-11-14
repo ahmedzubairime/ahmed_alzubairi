@@ -111,7 +111,7 @@ export default async function DocumentRequestsPage({
           label={t("filters.status")}
           name="status"
           defaultValue={list.status ?? ""}
-          className="min-w-0 basis-44"
+          className="min-w-0 basis-full sm:basis-44"
         >
           <option value="">{t("filters.all")}</option>
           {DOCUMENT_REQUEST_STATUSES.map((status) => (
@@ -124,7 +124,7 @@ export default async function DocumentRequestsPage({
           label={t("filters.document")}
           name="document"
           defaultValue={list.document ?? ""}
-          className="min-w-0 max-w-full basis-56"
+          className="min-w-0 max-w-full basis-full sm:basis-56"
         >
           <option value="">{t("filters.all")}</option>
           {documents.map((document) => (
