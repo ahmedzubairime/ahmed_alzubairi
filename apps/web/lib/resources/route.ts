@@ -24,6 +24,22 @@ const defaultDeps: ResourceRouteDeps = {
     validateFormEmail(request, email, RESOURCE_DOWNLOAD_LIMIT.route),
 };
 
+/**
+ * A direct download needs no body, so an empty one reads as `{}`. Anything
+ * else must be JSON: text that doesn't parse reads as `undefined`, which the
+ * schema refuses, as it refuses `null`.
+ */
+async function readBody(request: Request): Promise<unknown> {
+  const raw = await request.text().catch(() => undefined);
+  if (raw === undefined) return undefined;
+  if (raw.trim() === "") return {};
+  try {
+    return JSON.parse(raw) as unknown;
+  } catch {
+    return undefined;
+  }
+}
+
 /** `POST /api/resources/:id/download`: no account needed. */
 export async function handleResourceDownloadRequest(
   request: Request,
@@ -38,7 +54,7 @@ export async function handleResourceDownloadRequest(
         ? fail("rateLimited", locale)
         : decision === "denied"
           ? fail("denied", locale)
-          : await downloadResource(id, await request.json().catch(() => undefined), {
+          : await downloadResource(id, await readBody(request), {
               locale,
               store: deps.createStore(),
               isAcceptableEmail: (email) => deps.isAcceptableEmail(request, email),

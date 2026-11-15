@@ -15,6 +15,11 @@ const KEY = "resources/secret-key.pdf";
 const URL_OUT = "https://storage.example/object/sign/resources/file.pdf?token=abc";
 const EMAIL = "visitor@example.com";
 
+/** A body sent as written, not as JSON. */
+class Raw {
+  constructor(readonly text: string) {}
+}
+
 const state = {
   decision: "allow" as FormDecision,
   resource: null as DownloadableResource | null,
@@ -35,7 +40,7 @@ function call(body?: unknown, id = ID, referer = "https://site.example/en/resour
   const request = new Request(`https://site.example/api/resources/${id}/download`, {
     method: "POST",
     headers: { referer, "content-type": "application/json" },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: body === undefined ? undefined : body instanceof Raw ? body.text : JSON.stringify(body),
   });
   return handleResourceDownloadRequest(request, id, deps);
 }
@@ -95,6 +100,16 @@ describe("POST /api/resources/:id/download", () => {
       expect(response.status).toBe(400);
     }
     expect(findPublished).not.toHaveBeenCalled();
+  });
+
+  it("refuses JSON null and text that isn't JSON, but takes an empty body", async () => {
+    for (const body of [null, new Raw('{"email":'), new Raw("email=x"), [], "text"]) {
+      const response = await call(body);
+      expect(response.status).toBe(400);
+      expect((await response.json()).error.code).toBe("validation_failed");
+    }
+    expect(signDownload).not.toHaveBeenCalled();
+    expect((await call(new Raw("  "))).status).toBe(200);
   });
 
   it("returns 404 for a draft or missing resource, and for a bad id", async () => {

@@ -35,7 +35,7 @@ export async function downloadResource(
 ): Promise<Result<SignedUrlResponse>> {
   const { locale, store } = deps;
   if (!uuidSchema.safeParse(id).success) return fail("notFound", locale);
-  const parsed = resourceDownloadRequestSchema.safeParse(body ?? {});
+  const parsed = resourceDownloadRequestSchema.safeParse(body);
   if (!parsed.success) return fail("invalid", locale);
   const { email } = parsed.data;
 
