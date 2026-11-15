@@ -1,0 +1,54 @@
+{
+  "searchLabel": "Search",
+  "searchPlaceholder": "Search by word or phrase",
+  "searchSubmit": "Search",
+  "filterAll": "All",
+  "paginationLabel": "Pages",
+  "previous": "Previous",
+  "next": "Next",
+  "page": "Page {page}",
+  "pageOf": "Page {page} of {total}",
+  "readingTime": "{minutes} min read",
+  "shareLabel": "Share",
+  "shareOn": "Share on {network}",
+  "shareNetworks": {
+    "whatsapp": "WhatsApp",
+    "x": "X",
+    "linkedin": "LinkedIn",
+    "facebook": "Facebook",
+    "email": "Email"
+  },
+  "copyLink": "Copy link",
+  "linkCopied": "Link copied",
+  "copyFailed": "Couldn't copy. Copy this link:",
+  "opensInNewTab": "(opens in a new tab)",
+  "resourceKind": {
+    "guide": "Guide",
+    "template": "Template",
+    "working_paper": "Working paper"
+  },
+  "fileType": {
+    "pdf": "PDF",
+    "word": "Word",
+    "excel": "Excel"
+  },
+  "fileTypeLabel": "File type: {type}",
+  "mediaCategory": {
+    "media": "Media",
+    "events": "Events",
+    "conferences": "Conferences"
+  },
+  "courseType": {
+    "in_person": "In person",
+    "online_live": "Live online",
+    "recorded": "Recorded",
+    "custom": "Custom training"
+  },
+  "online": "Online",
+  "comingSoon": "Coming soon",
+  "courseFull": "Fully booked",
+  "seatsLeft": "{left, plural, =0 {No seats left} one {# seat left} other {# seats left}} of {total}",
+  "seatsMeter": "Seats left",
+  "date": "Date",
+  "place": "Place"
+}
