@@ -2,6 +2,7 @@ import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import { connection } from "next/server";
 import { Suspense } from "react";
+import { NewsletterSignup } from "@/components/newsletter";
 import { contactChannels } from "@/components/public/contact";
 import { cx, FOCUS_RING } from "@/components/ui/cx";
 import { Link } from "@/i18n/navigation";
@@ -54,7 +55,7 @@ export async function FooterChannels() {
   );
 }
 
-/** The public footer: brand and channels, section links, then the legal links (§6.1). */
+/** The public footer: brand, channels and the newsletter signup, section links, then the legal links (§6.1, §6.15). */
 export function SiteFooter() {
   const t = useTranslations("Footer");
   const tNav = useTranslations("Nav");
@@ -72,6 +73,7 @@ export function SiteFooter() {
           <Suspense>
             <FooterChannels />
           </Suspense>
+          <NewsletterSignup source="footer" className="max-w-md" />
         </div>
         <nav aria-label={t("sectionsLabel")}>
           <ul className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3">
