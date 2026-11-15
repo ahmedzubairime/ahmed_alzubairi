@@ -6,6 +6,8 @@ import { CompactHeader } from "@/components/compact-header";
 import { routing } from "@/i18n/routing";
 import { KIT_TEXT } from "./content";
 import { KitDemo } from "./kit-demo";
+import { LISTING_TEXT } from "./listing-content";
+import { ListingDemo } from "./listing-demo";
 import { WorkspaceDemo } from "./workspace-demo";
 
 // Dev only: local `next dev` and Vercel previews show it, production returns
@@ -30,6 +32,9 @@ export default async function UiKitPage({ params }: { params: Promise<{ locale: 
             <WorkspaceDemo />
           </div>
         </NextIntlClientProvider>
+        <div className="mt-10 border-t border-text/10 pt-10">
+          <ListingDemo text={LISTING_TEXT[locale]} />
+        </div>
       </main>
     </>
   );
