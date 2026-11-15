@@ -1,0 +1,54 @@
+{
+  "searchLabel": "بحث",
+  "searchPlaceholder": "ابحث بكلمة أو عبارة",
+  "searchSubmit": "بحث",
+  "filterAll": "الكل",
+  "paginationLabel": "الصفحات",
+  "previous": "السابق",
+  "next": "التالي",
+  "page": "الصفحة {page}",
+  "pageOf": "الصفحة {page} من {total}",
+  "readingTime": "{minutes, plural, one {دقيقة قراءة} two {دقيقتا قراءة} few {# دقائق قراءة} many {# دقيقة قراءة} other {# دقيقة قراءة}}",
+  "shareLabel": "شارك",
+  "shareOn": "شارك عبر {network}",
+  "shareNetworks": {
+    "whatsapp": "واتساب",
+    "x": "إكس",
+    "linkedin": "لينكدإن",
+    "facebook": "فيسبوك",
+    "email": "البريد الإلكتروني"
+  },
+  "copyLink": "نسخ الرابط",
+  "linkCopied": "تم نسخ الرابط",
+  "copyFailed": "تعذّر النسخ. انسخ الرابط من شريط العنوان.",
+  "opensInNewTab": "(يفتح في نافذة جديدة)",
+  "resourceKind": {
+    "guide": "دليل",
+    "template": "نموذج",
+    "working_paper": "ورقة عمل"
+  },
+  "fileType": {
+    "pdf": "PDF",
+    "word": "Word",
+    "excel": "Excel"
+  },
+  "fileTypeLabel": "نوع الملف: {type}",
+  "mediaCategory": {
+    "media": "إعلام",
+    "events": "فعاليات",
+    "conferences": "مؤتمرات"
+  },
+  "courseType": {
+    "in_person": "حضورية",
+    "online_live": "أونلاين مباشرة",
+    "recorded": "مسجلة",
+    "custom": "تدريب مخصص"
+  },
+  "online": "عبر الإنترنت",
+  "comingSoon": "قريباً",
+  "courseFull": "اكتملت المقاعد",
+  "seatsLeft": "{left, plural, zero {لا مقاعد متبقية} one {بقي مقعد واحد} two {بقي مقعدان} few {بقيت # مقاعد} many {بقي # مقعدًا} other {بقي # مقعد}} من {total}",
+  "seatsMeter": "المقاعد المتبقية",
+  "date": "التاريخ",
+  "place": "المكان"
+}
