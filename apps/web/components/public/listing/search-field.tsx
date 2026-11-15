@@ -45,6 +45,8 @@ export function SearchField({
         <SearchIcon className="pointer-events-none absolute start-3 top-1/2 size-5 -translate-y-1/2 text-text-secondary" />
         <input
           id={id}
+          // Resets the field when the page's search changes: defaultValue alone only sets it once.
+          key={value}
           type="search"
           name="q"
           defaultValue={value}

@@ -20,7 +20,7 @@
   },
   "copyLink": "Copy link",
   "linkCopied": "Link copied",
-  "copyFailed": "Couldn't copy. Copy the link from the address bar.",
+  "copyFailed": "Couldn't copy. Copy this link:",
   "opensInNewTab": "(opens in a new tab)",
   "resourceKind": {
     "guide": "Guide",

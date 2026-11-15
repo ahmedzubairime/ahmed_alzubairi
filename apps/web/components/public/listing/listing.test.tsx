@@ -253,7 +253,7 @@ describe("CopyLinkButton", () => {
     });
     render(<CopyLinkButton url="https://example.org/a" labels={labels} />);
     fireEvent.click(screen.getByRole("button", { name: "Copy" }));
-    await waitFor(() => expect(screen.getByRole("status").textContent).toBe("Failed"));
+    await waitFor(() => expect(screen.getByRole("status").textContent).toBe("Failed https://example.org/a"));
   });
 });
 

@@ -25,13 +25,15 @@ export function CopyLinkButton({
 
   async function copy() {
     clearTimeout(timer.current);
+    let ok = true;
     try {
       await navigator.clipboard.writeText(url);
-      setState("copied");
     } catch {
-      setState("failed");
+      ok = false;
     }
-    timer.current = setTimeout(() => setState("idle"), 3000);
+    setState(ok ? "copied" : "failed");
+    // A failure stays: the visitor needs time to copy the link by hand.
+    if (ok) timer.current = setTimeout(() => setState("idle"), 3000);
   }
 
   return (
@@ -40,8 +42,17 @@ export function CopyLinkButton({
         {state === "copied" ? <CheckIcon className="size-5" /> : <LinkIcon className="size-5" />}
         <span className="sr-only sm:not-sr-only">{state === "copied" ? labels.copied : labels.copy}</span>
       </button>
-      <span role="status" className={cx("text-sm text-text-secondary", state !== "failed" && "sr-only")}>
-        {state === "copied" ? labels.copied : state === "failed" ? labels.failed : ""}
+      <span role="status" className={cx("basis-full text-sm text-text-secondary", state !== "failed" && "sr-only")}>
+        {state === "copied" && labels.copied}
+        {/* The link itself, so it can be copied by hand: the address bar may hold a different URL. */}
+        {state === "failed" && (
+          <>
+            {labels.failed}{" "}
+            <span dir="ltr" className="select-all break-all font-semibold text-text">
+              {url}
+            </span>
+          </>
+        )}
       </span>
     </>
   );
