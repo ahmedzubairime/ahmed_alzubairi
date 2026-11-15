@@ -23,10 +23,11 @@ type MediaRow = Record<string, unknown> & {
   status: string;
 };
 
-/** Newest first by `date`, then `created_at`; undated last. */
+/** Newest first by `date`, then by `created_at`. Undated items come last. */
 function newestFirst(a: MediaRow, b: MediaRow) {
-  const time = (row: MediaRow) => Date.parse(row.date ?? row.created_at ?? "") || 0;
-  return time(b) - time(a);
+  if ((a.date === null) !== (b.date === null)) return a.date === null ? 1 : -1;
+  const time = (value: string | null) => Date.parse(value ?? "") || 0;
+  return time(b.date) - time(a.date) || time(b.created_at) - time(a.created_at);
 }
 
 function toMediaItem(row: MediaRow, locale: Locale): MediaItem | null {

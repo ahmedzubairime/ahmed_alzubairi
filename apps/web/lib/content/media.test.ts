@@ -80,6 +80,19 @@ describe("getMediaItems", () => {
     expect(ids(await getMediaItems("en"))).toEqual(["event", "conference", "interview", "undated"]);
   });
 
+  it("keeps an undated item last, however recently it was created", async () => {
+    db.rows.unshift(item("new-undated", { date: null, created_at: "2026-09-01T00:00:00Z" }));
+    expect(ids(await getMediaItems("en"))).toEqual(["event", "conference", "interview", "new-undated", "undated"]);
+  });
+
+  it("breaks an equal date by the newest created", async () => {
+    db.rows = [
+      item("older", { date: "2026-02-01", created_at: "2026-02-02T00:00:00Z" }),
+      item("newer", { date: "2026-02-01", created_at: "2026-02-03T00:00:00Z" }),
+    ];
+    expect(ids(await getMediaItems("en"))).toEqual(["newer", "older"]);
+  });
+
   it("returns the locale's fields", async () => {
     const found = (await getMediaItems("en")).find((entry) => entry.id === "interview");
     expect(found).toEqual({

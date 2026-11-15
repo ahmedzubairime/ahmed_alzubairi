@@ -134,6 +134,8 @@ describe("getPosts", () => {
     expect(second).toMatchObject({ total: 5, page: 2, pageSize: 2, pageCount: 3 });
     expect((await getPosts("en", { page: 99, pageSize: 2 })).page).toBe(3);
     expect((await getPosts("en", { page: 0, pageSize: 2 })).page).toBe(1);
+    expect(await getPosts("en", { page: Number.NaN, pageSize: Number.NaN })).toMatchObject({ page: 1, pageSize: 9, pageCount: 1 });
+    expect((await getPosts("en", { pageSize: 0 })).pageSize).toBe(9);
     expect(await getPosts("en", { q: "nothing" })).toMatchObject({ posts: [], total: 0, page: 1, pageCount: 1 });
   });
 

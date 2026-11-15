@@ -140,7 +140,8 @@ export async function getPosts(locale: Locale, query: PostQuery = {}): Promise<P
       (!query.expertise || post.expertise?.slug === query.expertise) && (!q || matches(post, q)),
   );
 
-  const pageSize = Math.max(1, Math.floor(query.pageSize ?? POSTS_PAGE_SIZE));
+  // A page size that isn't a number (NaN from a bad query string) falls back.
+  const pageSize = Math.max(1, Math.floor(query.pageSize ?? POSTS_PAGE_SIZE) || POSTS_PAGE_SIZE);
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const page = Math.min(Math.max(1, Math.floor(query.page ?? 1) || 1), pageCount);
   return {
