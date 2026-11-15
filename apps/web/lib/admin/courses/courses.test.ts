@@ -63,26 +63,34 @@ const LISTED: AdminCourse = {
 
 function memoryStore(row: CourseWrite = stored(), registered = 4) {
   const rows = new Map<string, CourseWrite>([[COURSE_ID, row]]);
+  // Each write moves the row's version, as the `updated_at` trigger does.
+  const versions = new Map<string, number>([[COURSE_ID, 1]]);
   const taken = (slug: string, exceptId?: string) =>
     [...rows].some(([id, other]) => id !== exceptId && other.slug === slug);
   return {
     rows,
     list: vi.fn(async () => [LISTED]),
-    get: vi.fn(async (id: string) => rows.get(id) ?? null),
+    versions,
+    get: vi.fn(async (id: string) => {
+      const course = rows.get(id);
+      return course ? { course, version: String(versions.get(id)) } : null;
+    }),
     insert: vi.fn(async (added: CourseWrite) => {
       if (taken(added.slug)) return "slug_taken" as const;
       rows.set(NEW_ID, added);
       return { id: NEW_ID };
     }),
-    update: vi.fn(async (id: string, changes: Partial<CourseWrite>) => {
+    update: vi.fn(async (id: string, changes: Partial<CourseWrite>, version: string) => {
       const current = rows.get(id);
       if (!current) return "gone" as const;
+      if (String(versions.get(id)) !== version) return "changed" as const;
       if (changes.slug && taken(changes.slug, id)) return "slug_taken" as const;
       rows.set(id, { ...current, ...changes });
+      versions.set(id, (versions.get(id) ?? 0) + 1);
       return "ok" as const;
     }),
     registrationCount: vi.fn(async () => registered),
-  } satisfies CourseStore & { rows: unknown };
+  } satisfies CourseStore & { rows: unknown; versions: unknown };
 }
 
 function deps(store = memoryStore(), locale: "ar" | "en" = "en") {
@@ -202,7 +210,11 @@ describe("updateCourse", () => {
     const d = deps();
     const result = await updateCourse({ id: COURSE_ID, titleEn: "Governance basics", seats: 12 }, d);
     expect(result).toEqual({ status: 200, body: { ok: true } });
-    expect(d.store.update).toHaveBeenCalledWith(COURSE_ID, { title_en: "Governance basics", seats: 12 });
+    expect(d.store.update).toHaveBeenCalledWith(
+      COURSE_ID,
+      { title_en: "Governance basics", seats: 12 },
+      "1",
+    );
     expect(d.revalidate).toHaveBeenCalledWith(COURSES_CACHE_TAG);
     expect(d.audit).toHaveBeenCalledWith({
       actorId: COORDINATOR,
@@ -270,6 +282,29 @@ describe("updateCourse", () => {
     expect((await updateCourse(body, d)).status).toBe(status);
     expect(d.store.update).not.toHaveBeenCalled();
     expect(d.audit).not.toHaveBeenCalled();
+  });
+
+  it("two edits at once can't together break the publish rule: the second gets a 409", async () => {
+    const d = deps();
+    const realGet = d.store.get.getMockImplementation()!;
+    d.store.get.mockImplementationOnce(async (id: string) => {
+      const read = await realGet(id);
+      // Another coordinator's PATCH lands after this request read the row.
+      await d.store.update(id, { status: "draft" }, read!.version);
+      d.store.update.mockClear();
+      return read;
+    });
+    const result = await updateCourse({ id: COURSE_ID, placeEn: "Aden" }, d);
+    expect(result).toEqual({
+      status: 409,
+      body: { error: { code: "conflict", message: en.changedElsewhere } },
+    });
+    // Nothing of the stale request was written, and nothing was audited.
+    expect(d.store.rows.get(COURSE_ID)).toMatchObject({ status: "draft", place_en: null });
+    expect(d.audit).not.toHaveBeenCalled();
+    expect(d.revalidate).not.toHaveBeenCalled();
+    // A fresh request reads the new version and goes through.
+    expect((await updateCourse({ id: COURSE_ID, placeEn: "Aden" }, d)).status).toBe(200);
   });
 
   it("answers 404 when the course is deleted mid-request, and 409 for a slug in use", async () => {

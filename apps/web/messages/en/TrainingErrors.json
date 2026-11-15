@@ -4,6 +4,7 @@
   "slugTaken": "Another course already uses this link name. Choose a different one.",
   "publishNeedsText": "To publish, add a title and a description in at least one language.",
   "publishNeedsDate": "To publish an in-person or live online course, set its start date.",
+  "changedElsewhere": "Someone else changed this course just now. Reload the page and try again.",
   "seatsBelowRegistrations": "More people than that have already registered. Choose a higher number of seats.",
   "profileIncomplete": "Complete your profile before you register for a course.",
   "notAClient": "Only client accounts can register for courses.",

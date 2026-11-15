@@ -60,14 +60,14 @@ export function createCourseStore(user: Client, service: Client): CourseStore {
     async get(id) {
       const { data, error } = await service
         .from("courses")
-        .select(COLUMNS)
+        .select(`${COLUMNS}, updated_at`)
         .eq("id", id)
         .maybeSingle();
       if (error) throw new Error(`courses read failed: ${error.code}`);
       if (!data) return null;
-      const { id: _id, ...row } = data;
+      const { id: _id, updated_at: version, ...row } = data;
       void _id;
-      return row as CourseWrite;
+      return { course: row as CourseWrite, version };
     },
 
     async insert(row) {
@@ -77,15 +77,22 @@ export function createCourseStore(user: Client, service: Client): CourseStore {
       return { id: data.id };
     },
 
-    async update(id, changes) {
+    async update(id, changes, version) {
+      // One statement: the row is written only if nobody changed it since it
+      // was read (the `set_updated_at` trigger moves `updated_at` on every
+      // write).
       const { data, error } = await service
         .from("courses")
         .update(changes)
         .eq("id", id)
+        .eq("updated_at", version)
         .select("id");
       if (error?.code === PG_UNIQUE_VIOLATION) return "slug_taken";
       if (error) throw new Error(`courses update failed: ${error.code}`);
-      return data.length > 0 ? "ok" : "gone";
+      if (data.length > 0) return "ok";
+      const still = await service.from("courses").select("id").eq("id", id).maybeSingle();
+      if (still.error) throw new Error(`courses read failed: ${still.error.code}`);
+      return still.data ? "changed" : "gone";
     },
 
     async registrationCount(id) {

@@ -40,12 +40,22 @@ export type CourseWrite = {
 export type CourseStore = {
   /** Every course with its registration count, read with the member's own client. */
   list: () => Promise<AdminCourse[]>;
-  /** A course as stored, or null when there is no such row. */
-  get: (id: string) => Promise<CourseWrite | null>;
+  /**
+   * A course as stored, with its `updated_at` as the row's version, or null
+   * when there is no such row.
+   */
+  get: (id: string) => Promise<{ course: CourseWrite; version: string } | null>;
   /** Inserts a row and returns its id, or `slug_taken`. */
   insert: (row: CourseWrite) => Promise<{ id: string } | "slug_taken">;
-  /** Updates a row. `gone` when the row no longer exists. */
-  update: (id: string, changes: Partial<CourseWrite>) => Promise<"ok" | "gone" | "slug_taken">;
+  /**
+   * Updates a row only while it still has this version. `changed` when someone
+   * else wrote it since `get`; `gone` when the row no longer exists.
+   */
+  update: (
+    id: string,
+    changes: Partial<CourseWrite>,
+    version: string,
+  ) => Promise<"ok" | "gone" | "changed" | "slug_taken">;
   /** How many people registered for this course. */
   registrationCount: (id: string) => Promise<number>;
 };
@@ -163,6 +173,10 @@ type Field = keyof typeof COLUMNS;
  * optional field. The publish rule is checked against the row as it will be,
  * so a published course can't lose what publishing needs, and the seat limit
  * can't drop below the people already registered.
+ *
+ * The write only lands on the version that was checked. Two edits at once
+ * can't each pass the rule and together break it (one publishes while the
+ * other clears the date): the second gets a 409 and reloads.
  */
 export async function updateCourse(
   rawBody: unknown,
@@ -175,8 +189,9 @@ export async function updateCourse(
     return trainingError("validation_failed", 400, "slugInvalid", deps.locale);
   }
 
-  const current = await deps.store.get(id);
-  if (!current) return trainingError("not_found", 404, "notFound", deps.locale);
+  const found = await deps.store.get(id);
+  if (!found) return trainingError("not_found", 404, "notFound", deps.locale);
+  const { course: current, version } = found;
 
   const changed = (Object.keys(COLUMNS) as Field[]).filter((name) => fields[name] !== undefined);
   const changes = Object.fromEntries(
@@ -194,8 +209,9 @@ export async function updateCourse(
     return trainingError("conflict", 409, "seatsBelowRegistrations", deps.locale);
   }
 
-  const updated = await deps.store.update(id, changes);
+  const updated = await deps.store.update(id, changes, version);
   if (updated === "gone") return trainingError("not_found", 404, "notFound", deps.locale);
+  if (updated === "changed") return trainingError("conflict", 409, "changedElsewhere", deps.locale);
   if (updated === "slug_taken") return trainingError("conflict", 409, "slugTaken", deps.locale);
 
   deps.revalidate(COURSES_CACHE_TAG);
