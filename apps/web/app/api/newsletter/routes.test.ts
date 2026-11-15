@@ -12,6 +12,7 @@ import en from "@/messages/en/Newsletter.json";
 
 const mocks = vi.hoisted(() => ({
   protect: vi.fn(),
+  validEmail: vi.fn(),
   queue: vi.fn(),
   create: vi.fn(),
 }));
@@ -24,7 +25,10 @@ vi.mock("next/server", async (original) => ({
   ...(await original<typeof import("next/server")>()),
   connection: async () => {},
 }));
-vi.mock("@/lib/arcjet", () => ({ protectForm: mocks.protect }));
+vi.mock("@/lib/arcjet", () => ({
+  protectForm: mocks.protect,
+  validateFormEmail: mocks.validEmail,
+}));
 vi.mock("@/lib/supabase/service", () => ({
   createServiceClient: () => fakeNewsletterDb(rows, db),
 }));
@@ -54,6 +58,7 @@ beforeEach(() => {
   rows = [];
   db.fail = undefined;
   mocks.protect.mockReset().mockResolvedValue("allow");
+  mocks.validEmail.mockReset().mockResolvedValue(true);
   mocks.queue.mockReset().mockResolvedValue(true);
   mocks.create.mockReset().mockResolvedValue({ data: { id: "c" }, error: null });
   vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://site.example");
@@ -136,6 +141,22 @@ describe("POST /api/newsletter/subscribe", () => {
     });
     expect(rows).toEqual([]);
     expect(mocks.queue).not.toHaveBeenCalled();
+  });
+
+  it("refuses an address Arcjet refuses, after the form check, and writes nothing", async () => {
+    mocks.validEmail.mockResolvedValue(false);
+    const response = await post(VALID);
+    expect(mocks.validEmail).toHaveBeenCalledWith(expect.any(Request), EMAIL, "newsletter-subscribe");
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: { code: "validation_failed", message: en.errors.validation_failed },
+    });
+    expect(rows).toEqual([]);
+    expect(mocks.queue).not.toHaveBeenCalled();
+    // A body that fails the schema never reaches Arcjet's email check.
+    mocks.validEmail.mockClear();
+    await post({ ...VALID, email: "nope" });
+    expect(mocks.validEmail).not.toHaveBeenCalled();
   });
 
   it("answers 500 when the database fails", async () => {

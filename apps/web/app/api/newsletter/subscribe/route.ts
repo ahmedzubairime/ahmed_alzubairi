@@ -6,7 +6,7 @@ import {
 } from "@repo/shared";
 import { NextResponse } from "next/server";
 import { localeFromReferer } from "@/lib/auth/paths";
-import { protectForm, type FormLimit } from "@/lib/arcjet";
+import { protectForm, validateFormEmail, type FormLimit } from "@/lib/arcjet";
 import { startSubscription } from "@/lib/newsletter/subscribe";
 import ar from "@/messages/ar/Newsletter.json";
 import en from "@/messages/en/Newsletter.json";
@@ -34,18 +34,6 @@ function fail(code: keyof typeof STATUS, request: Request) {
 }
 
 /**
- * The route's one email check beyond the schema's format rule. It becomes
- * `validateFormEmail(request, email, route)` from `lib/arcjet` once that
- * lands (PR #89): swap this body, nothing else.
- */
-async function emailAccepted(request: Request, email: string): Promise<boolean> {
-  // The schema has checked the format. Nothing more until #89.
-  void request;
-  void email;
-  return true;
-}
-
-/**
  * `POST /api/newsletter/subscribe` (§6.15): no account needed. The answer is
  * `ok` whether the address is new, pending, confirmed or unsubscribed (§9), so
  * the form can't be used to learn who subscribed.
@@ -59,7 +47,9 @@ export async function POST(request: Request) {
     await request.json().catch(() => undefined),
   );
   if (!parsed.success) return fail("validation_failed", request);
-  if (!(await emailAccepted(request, parsed.data.email))) {
+  // Disposable, invalid or no mail server: the same refusal as a bad format,
+  // which says nothing about who is subscribed.
+  if (!(await validateFormEmail(request, parsed.data.email, NEWSLETTER_SUBSCRIBE_LIMIT.route))) {
     return fail("validation_failed", request);
   }
 
