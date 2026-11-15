@@ -255,6 +255,22 @@ describe("CopyLinkButton", () => {
     fireEvent.click(screen.getByRole("button", { name: "Copy" }));
     await waitFor(() => expect(screen.getByRole("status").textContent).toBe("Failed https://example.org/a"));
   });
+  it("keeps a failure when an earlier attempt succeeds late", async () => {
+    let finishFirst: () => void = () => {};
+    const writeText = vi
+      .fn()
+      .mockImplementationOnce(() => new Promise<void>((resolve) => (finishFirst = resolve)))
+      .mockRejectedValueOnce(new Error("denied"));
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    render(<CopyLinkButton url="https://example.org/a" labels={labels} />);
+    const button = screen.getByRole("button", { name: "Copy" });
+    fireEvent.click(button);
+    fireEvent.click(button);
+    await waitFor(() => expect(screen.getByRole("status").textContent).toContain("Failed"));
+    finishFirst();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(screen.getByRole("status").textContent).toContain("Failed");
+  });
 });
 
 describe("ResourceCard", () => {
