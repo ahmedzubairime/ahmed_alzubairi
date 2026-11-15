@@ -141,6 +141,22 @@ describe("startSubscription", () => {
     });
   });
 
+  it("an older overlapping signup never moves a confirmed row's consent time back", async () => {
+    // A newer request has already written its (later) consent time.
+    const newer = new Date(Date.now() + 60_000).toISOString();
+    rows.push(row({ status: "confirmed", confirm_token_hash: null, consented_at: newer }));
+    expect(await start()).toBe("ok");
+    expect(rows[0]?.consented_at).toBe(newer);
+    // The newer request synced the contact; this one leaves Resend alone.
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+
+  it("a confirmed row with no consent time gets one", async () => {
+    rows.push(row({ status: "confirmed", confirm_token_hash: null, consented_at: null }));
+    await start();
+    expect(rows[0]?.consented_at).toBeTruthy();
+  });
+
   it("a confirmed row answers ok even when Resend is down", async () => {
     rows.push(row({ status: "confirmed", confirm_token_hash: null }));
     mocks.create.mockRejectedValue(new Error("down"));

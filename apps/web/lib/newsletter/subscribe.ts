@@ -98,12 +98,17 @@ export async function startSubscription(input: {
         .update({ consented_at: pending.consented_at })
         .eq("email", email)
         .eq("status", "confirmed")
+        // Never backwards: an overlapping older request must not replace a
+        // newer consent time.
+        // Quoted: the time holds `:` and `.`, which PostgREST reserves.
+        .or(`consented_at.is.null,consented_at.lt."${pending.consented_at}"`)
         .select("id");
       if (renewed.error) {
         logFailure("renew", renewed.error);
         return "failed";
       }
-      // Unsubscribed in between (a webhook): leave it, the answer is the same.
+      // No row: a newer signup already renewed it (and synced), or a webhook
+      // unsubscribed it in between. Leave it; the answer is the same.
       if (renewed.data.length > 0) await addToAudience(email);
       return "ok";
     }

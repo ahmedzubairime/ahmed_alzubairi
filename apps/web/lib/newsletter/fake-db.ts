@@ -31,6 +31,17 @@ export function fakeNewsletterDb(rows: SubscriberRow[], state: { fail?: DbError 
         chain(patch, [...tests, (row) => row[column] !== value]),
       lte: (column: keyof SubscriberRow, value: string) =>
         chain(patch, [...tests, (row) => row[column] !== null && String(row[column]) <= value]),
+      /** Only the one form the code uses: `<col>.is.null,<col>.lt."<value>"`. */
+      or: (filter: string) => {
+        const match = /^(\w+)\.is\.null,\1\.lt\."(.+)"$/.exec(filter);
+        if (!match) throw new Error(`unexpected or() filter ${filter}`);
+        const column = match[1] as keyof SubscriberRow;
+        const value = match[2] ?? "";
+        return chain(patch, [
+          ...tests,
+          (row) => row[column] === null || String(row[column]) < value,
+        ]);
+      },
       select: () => chain(patch, tests),
       then: (resolve: (value: ReturnType<typeof run>) => void) => resolve(run()),
     };
