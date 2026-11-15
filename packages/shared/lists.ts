@@ -4,9 +4,10 @@ import {
   consultationKindSchema,
   consultationStatusSchema,
   documentRequestStatusSchema,
+  newsletterStatusSchema,
   profileStatusSchema,
 } from "./enums";
-import { clerkUserIdSchema } from "./fields";
+import { clerkUserIdSchema, uuidSchema } from "./fields";
 import {
   DEFAULT_PAGE_SIZE,
   MAX_PAGE_SIZE,
@@ -95,6 +96,45 @@ export const documentRequestListParamsSchema = z.strictObject({
 
 export type DocumentRequestListParams = z.infer<
   typeof documentRequestListParamsSchema
+>;
+
+/**
+ * The dashboard's newsletter subscriber list (a server read, `content.manage`).
+ * `search` matches the email.
+ */
+export const newsletterSubscriberListParamsSchema = z.strictObject({
+  ...listParamFields,
+  status: newsletterStatusSchema.optional(),
+});
+
+export type NewsletterSubscriberListParams = z.infer<
+  typeof newsletterSubscriberListParamsSchema
+>;
+
+/**
+ * The dashboard's course registrations (a server read, `training.manage`).
+ * `course` keeps the list to one course. `search` matches the trainee's name
+ * or email.
+ */
+export const courseRegistrationListParamsSchema = z.strictObject({
+  ...listParamFields,
+  course: uuidSchema.optional(),
+});
+
+export type CourseRegistrationListParams = z.infer<
+  typeof courseRegistrationListParamsSchema
+>;
+
+/**
+ * The dashboard's custom training requests (a server read, `training.manage`).
+ * `search` matches the organization's name.
+ */
+export const customTrainingRequestListParamsSchema = z.strictObject(
+  listParamFields,
+);
+
+export type CustomTrainingRequestListParams = z.infer<
+  typeof customTrainingRequestListParamsSchema
 >;
 
 /** The rows `page` and `pageSize` select: `from` and `to` are both included. */

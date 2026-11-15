@@ -105,10 +105,10 @@ afterEach(() => {
 });
 
 describe("templateEntries", () => {
-  it("lists all 13 events in order, each with its default copy", () => {
+  it("lists every event in order, each with its default copy", () => {
     const entries = templateEntries([]);
     expect(entries.map((entry) => entry.event)).toEqual([...EMAIL_EVENTS]);
-    expect(entries).toHaveLength(13);
+    expect(entries).toHaveLength(EMAIL_EVENTS.length);
     for (const entry of entries) {
       expect(entry).toEqual({ ...defaultTemplate(entry.event), edited: false });
       expect(entry.subjectAr).toBe(EMAIL_DEFAULTS[entry.event].ar.subject);
@@ -126,7 +126,7 @@ describe("templateEntries", () => {
   it("leaves out a saved row for an event this build doesn't know", () => {
     const stray = { ...edited, event: "party" } as unknown as EmailTemplate;
     const entries = templateEntries([stray]);
-    expect(entries).toHaveLength(13);
+    expect(entries).toHaveLength(EMAIL_EVENTS.length);
     expect(entries.some((entry) => entry.edited)).toBe(false);
   });
 });
@@ -172,7 +172,7 @@ describe("listEmailTemplates", () => {
     await store.upsert(edited);
     const result = await listEmailTemplates({ store });
     expect(result.status).toBe(200);
-    expect(result.body.templates).toHaveLength(13);
+    expect(result.body.templates).toHaveLength(EMAIL_EVENTS.length);
     expect(
       result.body.templates.find((entry) => entry.event === "contact_message"),
     ).toEqual({ ...edited, edited: true });
@@ -399,7 +399,7 @@ describe("/api/admin/email-templates", () => {
     const { templates } = (await listed.json()) as {
       templates: { event: string; edited: boolean }[];
     };
-    expect(templates).toHaveLength(13);
+    expect(templates).toHaveLength(EMAIL_EVENTS.length);
     expect(templates.filter((entry) => entry.edited).map((entry) => entry.event)).toEqual([
       "contact_message",
     ]);

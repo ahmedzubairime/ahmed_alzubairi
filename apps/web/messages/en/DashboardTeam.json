@@ -212,6 +212,13 @@
         "grant": "Granted a document",
         "contact_first": "Chose contact first on a document request",
         "revoke": "Withdrew access to a document"
+      },
+      "course": {
+        "create": "Added a course",
+        "update": "Edited a course"
+      },
+      "newsletter": {
+        "export": "Exported the newsletter subscribers"
       }
     },
     "entities": {
@@ -223,7 +230,9 @@
       "meetings": "Meetings",
       "documents": "Documents",
       "document_requests": "Document requests",
-      "courses": "Courses"
+      "courses": "Courses",
+      "newsletter_subscribers": "Newsletter subscribers",
+      "custom_training_requests": "Custom training requests"
     }
   }
 }

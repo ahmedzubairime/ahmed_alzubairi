@@ -84,6 +84,7 @@ const course = {
   onlineUrl: URL_OK,
   seats: 10,
   status: "published",
+  registrationCount: 3,
 };
 const client = {
   id: "user_1",
@@ -315,7 +316,11 @@ const CASES: Record<
   },
   "POST /api/courses/:id/register": {
     params: ID_PARAMS,
-    response: OK_RESPONSE,
+    body: { ok: {}, bad: { seats: 1 } },
+    response: {
+      ok: { outcome: "already_registered", seatsLeft: null },
+      bad: { outcome: "full", seatsLeft: 0 },
+    },
   },
   "PATCH /api/admin/consultations/:id": {
     params: ID_PARAMS,
@@ -412,7 +417,7 @@ const CASES: Record<
     response: ID_RESPONSE,
   },
   "PATCH /api/admin/courses": {
-    body: { ok: { id: ID, seats: 5 }, bad: { id: ID } },
+    body: { ok: { id: ID, seats: null }, bad: { id: ID } },
     response: OK_RESPONSE,
   },
   "GET /api/admin/clients": {
