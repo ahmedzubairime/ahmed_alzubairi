@@ -57,7 +57,8 @@ function verified(payload: string, request: NextRequest, webhookSecret: string):
  * Resend's servers.
  *
  * Only `contact.updated` with `unsubscribed: true` does anything. It only
- * ever sets `unsubscribed`, so events that arrive twice or out of order are
+ * ever sets a confirmed row `unsubscribed`, and never one whose consent is
+ * newer than the event, so events that arrive twice, late or out of order are
  * safe, and no event can subscribe anyone. Nothing from the payload is logged.
  */
 export async function POST(request: NextRequest) {
@@ -78,7 +79,14 @@ export async function POST(request: NextRequest) {
   if (!parsed.success || !parsed.data.data.unsubscribed) return ok();
 
   // The signature proves Resend sent this, so the service client writes (§9).
-  // A 500 makes Resend send the event again.
-  if (!(await markUnsubscribed(parsed.data.data.email))) return fail("internal_error");
+  // It doesn't prove the order: the event's own time lets a late opt-out lose
+  // to a newer signup. A 500 makes Resend send the event again.
+  const createdAt = (event as { created_at?: unknown }).created_at;
+  const eventAt = typeof createdAt === "string" ? new Date(createdAt) : null;
+  const unsubscribed = await markUnsubscribed(
+    parsed.data.data.email,
+    eventAt && !Number.isNaN(eventAt.getTime()) ? eventAt : undefined,
+  );
+  if (!unsubscribed) return fail("internal_error");
   return ok();
 }

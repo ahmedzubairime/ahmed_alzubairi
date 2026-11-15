@@ -102,6 +102,16 @@ describe("POST /api/resend/webhook", () => {
     expect(JSON.stringify(rows)).toBe(before);
   });
 
+  it("a late opt-out leaves a newer signup alone, pending or confirmed", async () => {
+    // Consent is newer than the event (2026-11-15T10:00Z).
+    rows = [row({ status: "pending", confirm_token_hash: "h", consented_at: "2026-11-15T11:00:00.000Z" })];
+    expect((await POST(signed(unsubscribed()))).status).toBe(200);
+    expect(rows[0]).toMatchObject({ status: "pending", confirm_token_hash: "h" });
+    rows = [row({ consented_at: "2026-11-15T11:00:00.000Z" })];
+    expect((await POST(signed(unsubscribed()))).status).toBe(200);
+    expect(rows[0]?.status).toBe("confirmed");
+  });
+
   it("an address with no row is a 200", async () => {
     const response = await POST(signed(unsubscribed("nobody@example.com")));
     expect(response.status).toBe(200);

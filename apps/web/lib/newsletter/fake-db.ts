@@ -29,6 +29,8 @@ export function fakeNewsletterDb(rows: SubscriberRow[], state: { fail?: DbError 
         chain(patch, [...tests, (row) => row[column] === value]),
       neq: (column: keyof SubscriberRow, value: unknown) =>
         chain(patch, [...tests, (row) => row[column] !== value]),
+      lte: (column: keyof SubscriberRow, value: string) =>
+        chain(patch, [...tests, (row) => row[column] !== null && String(row[column]) <= value]),
       select: () => chain(patch, tests),
       then: (resolve: (value: ReturnType<typeof run>) => void) => resolve(run()),
     };

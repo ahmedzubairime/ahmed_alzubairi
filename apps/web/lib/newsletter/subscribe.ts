@@ -2,6 +2,7 @@ import "server-only";
 import type { Locale, NewsletterSource } from "@repo/shared";
 import { queueEmail } from "@/lib/email/queue";
 import { createServiceClient } from "@/lib/supabase/service";
+import { addToAudience } from "./audience";
 import { hashConfirmToken, newConfirmToken } from "./token";
 
 /**
@@ -46,7 +47,8 @@ function confirmUrl(token: string): string | null {
  * - No row: a new `pending` row.
  * - `pending` or `unsubscribed`: back to `pending` with a new token, so the
  *   old link stops working.
- * - `confirmed`: left alone, and no email.
+ * - `confirmed`: left alone, and no email. The address is sent to the Resend
+ *   segment again, which repairs a sync that failed when it was confirmed.
  *
  * The answer never says which of these happened (§9): `ok` for all three. A
  * confirm email that can't be queued is logged and still answers `ok`.
@@ -85,8 +87,12 @@ export async function startSubscription(input: {
       logFailure("restart", restarted.error);
       return "failed";
     }
-    // Confirmed already: nothing to send.
-    if (restarted.data.length === 0) return "ok";
+    // Confirmed already: nothing to send. Asking again is fresh consent, so
+    // make sure Resend has the address (idempotent; a failure is only logged).
+    if (restarted.data.length === 0) {
+      await addToAudience(email);
+      return "ok";
+    }
   }
 
   const url = confirmUrl(token);

@@ -129,6 +129,24 @@ describe("startSubscription", () => {
     expect(await start()).toBe("ok");
     expect(rows).toEqual([confirmed]);
     expect(mocks.queue).not.toHaveBeenCalled();
+    // A sync that failed at confirm time is repaired here.
+    expect(mocks.create).toHaveBeenCalledWith({
+      email: EMAIL,
+      unsubscribed: false,
+      segments: [{ id: "seg_1" }],
+    });
+  });
+
+  it("a confirmed row answers ok even when Resend is down", async () => {
+    rows.push(row({ status: "confirmed", confirm_token_hash: null }));
+    mocks.create.mockRejectedValue(new Error("down"));
+    expect(await start()).toBe("ok");
+  });
+
+  it.each(["new", "pending", "unsubscribed"])("a %s address is never sent to Resend", async (state) => {
+    if (state !== "new") rows.push(row({ status: state }));
+    await start();
+    expect(mocks.create).not.toHaveBeenCalled();
   });
 
   it("answers ok even when the confirm email can't be queued", async () => {
@@ -227,11 +245,26 @@ describe("addToAudience", () => {
 });
 
 describe("markUnsubscribed", () => {
-  it("flips the row and kills any open confirm link", async () => {
+  it("flips a confirmed row, and only that address", async () => {
     rows.push(row({ status: "confirmed", confirm_token_hash: null }), row({ email: "b@example.com" }));
     expect(await markUnsubscribed("Reader@Example.com")).toBe(true);
     expect(rows[0]).toMatchObject({ status: "unsubscribed", confirm_token_hash: null });
     expect(rows[1]?.status).toBe("pending");
+  });
+
+  it("a late opt-out never kills a newer pending signup or its link", async () => {
+    rows.push(row());
+    expect(await markUnsubscribed(EMAIL, new Date("2026-10-01T00:00:00.000Z"))).toBe(true);
+    expect(rows[0]).toMatchObject({ status: "pending", confirm_token_hash: hashConfirmToken("old-token") });
+    expect((await confirmSubscription("old-token")).status).toBe("confirmed");
+  });
+
+  it("an opt-out older than the row's consent is ignored; a newer one applies", async () => {
+    rows.push(row({ status: "confirmed", confirm_token_hash: null }));
+    await markUnsubscribed(EMAIL, new Date("2026-10-31T23:59:59.000Z"));
+    expect(rows[0]?.status).toBe("confirmed");
+    await markUnsubscribed(EMAIL, new Date("2026-11-01T00:00:01.000Z"));
+    expect(rows[0]?.status).toBe("unsubscribed");
   });
 
   it("an unknown address changes nothing; a database error answers false", async () => {
