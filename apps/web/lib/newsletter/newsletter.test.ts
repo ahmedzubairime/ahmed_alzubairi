@@ -123,11 +123,15 @@ describe("startSubscription", () => {
     expect(mocks.queue).toHaveBeenCalledTimes(1);
   });
 
-  it("a confirmed row is left alone: no change, no email, the same answer", async () => {
+  it("a confirmed row stays confirmed: only its consent time is renewed, no email, the same answer", async () => {
     const confirmed = row({ status: "confirmed", confirm_token_hash: null });
     rows.push({ ...confirmed });
     expect(await start()).toBe("ok");
-    expect(rows).toEqual([confirmed]);
+    expect(rows).toEqual([{ ...confirmed, consented_at: expect.any(String) }]);
+    expect(Date.parse(rows[0]?.consented_at ?? "")).toBeGreaterThan(Date.parse(confirmed.consented_at ?? ""));
+    // An opt-out from before this signup, arriving late, no longer applies.
+    await markUnsubscribed(EMAIL, new Date("2026-11-10T00:00:00.000Z"));
+    expect(rows[0]?.status).toBe("confirmed");
     expect(mocks.queue).not.toHaveBeenCalled();
     // A sync that failed at confirm time is repaired here.
     expect(mocks.create).toHaveBeenCalledWith({

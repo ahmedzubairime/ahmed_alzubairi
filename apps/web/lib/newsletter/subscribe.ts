@@ -47,8 +47,9 @@ function confirmUrl(token: string): string | null {
  * - No row: a new `pending` row.
  * - `pending` or `unsubscribed`: back to `pending` with a new token, so the
  *   old link stops working.
- * - `confirmed`: left alone, and no email. The address is sent to the Resend
- *   segment again, which repairs a sync that failed when it was confirmed.
+ * - `confirmed`: stays confirmed, and no email. Only its consent time is
+ *   renewed, and the address is sent to the Resend segment again, which
+ *   repairs a sync that failed when it was confirmed.
  *
  * The answer never says which of these happened (§9): `ok` for all three. A
  * confirm email that can't be queued is logged and still answers `ok`.
@@ -88,9 +89,22 @@ export async function startSubscription(input: {
       return "failed";
     }
     // Confirmed already: nothing to send. Asking again is fresh consent, so
-    // make sure Resend has the address (idempotent; a failure is only logged).
+    // record its time first (a late opt-out from before it must lose, see
+    // `markUnsubscribed`), then make sure Resend has the address. Both are
+    // idempotent, and a Resend failure is only logged.
     if (restarted.data.length === 0) {
-      await addToAudience(email);
+      const renewed = await service
+        .from("newsletter_subscribers")
+        .update({ consented_at: pending.consented_at })
+        .eq("email", email)
+        .eq("status", "confirmed")
+        .select("id");
+      if (renewed.error) {
+        logFailure("renew", renewed.error);
+        return "failed";
+      }
+      // Unsubscribed in between (a webhook): leave it, the answer is the same.
+      if (renewed.data.length > 0) await addToAudience(email);
       return "ok";
     }
   }
