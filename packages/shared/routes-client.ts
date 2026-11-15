@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   consultationKindSchema,
   consultationStatusSchema,
+  courseTypeSchema,
   documentAccessModeSchema,
   documentOpenActionSchema,
   localeSchema,
@@ -21,6 +22,7 @@ import {
   MAX_NOTIFICATION_IDS,
   SIGNED_URL_TTL_SECONDS,
 } from "./limits";
+import type { ErrorCode } from "./errors";
 import { createProfileRequestSchema } from "./profile";
 
 /**
@@ -208,3 +210,72 @@ export const documentOpenResponseSchema = z.strictObject({
 });
 
 export type DocumentOpenResponse = z.infer<typeof documentOpenResponseSchema>;
+
+/**
+ * What `register_for_course` decides (§6.7). `full` and `closed` are refusals:
+ * the route answers them with the `course_full` and `course_closed` error
+ * codes (409). The other two are a 200.
+ */
+export const COURSE_REGISTER_OUTCOMES = [
+  "registered",
+  "already_registered",
+  "full",
+  "closed",
+] as const;
+
+export const courseRegisterOutcomeSchema = z.enum(COURSE_REGISTER_OUTCOMES);
+
+export type CourseRegisterOutcome = z.infer<typeof courseRegisterOutcomeSchema>;
+
+/** The refused outcomes and the error code each one answers with. */
+export const COURSE_REGISTER_ERROR_CODES = {
+  full: "course_full",
+  closed: "course_closed",
+} as const satisfies Partial<Record<CourseRegisterOutcome, ErrorCode>>;
+
+/** Seats left after the call; null when the course has no seat limit. */
+const seatsLeftSchema = z.int().min(0).nullable();
+
+/** `POST /api/courses/:id/register`. Takes no fields. */
+export const courseRegisterRequestSchema = z.strictObject({});
+
+export type CourseRegisterRequest = z.infer<typeof courseRegisterRequestSchema>;
+
+/** A registration twice is not an error: it answers `already_registered`. */
+export const courseRegisterResponseSchema = z.strictObject({
+  outcome: z.enum(["registered", "already_registered"]),
+  seatsLeft: seatsLeftSchema,
+});
+
+export type CourseRegisterResponse = z.infer<
+  typeof courseRegisterResponseSchema
+>;
+
+/**
+ * One row of "دوراتي" (§6.7): the client's own registrations, a server read
+ * through the client's own Supabase client (RLS scopes it). Titles and places
+ * may be missing in one language.
+ */
+export const myCourseRegistrationSchema = z.strictObject({
+  id: uuidSchema,
+  courseId: uuidSchema,
+  slug: z.string(),
+  type: courseTypeSchema,
+  titleAr: z.string().nullable(),
+  titleEn: z.string().nullable(),
+  startsAt: utcDatetimeSchema.nullable(),
+  placeAr: z.string().nullable(),
+  placeEn: z.string().nullable(),
+  onlineUrl: httpsUrlSchema.nullable(),
+  registeredAt: utcDatetimeSchema,
+});
+
+export type MyCourseRegistration = z.infer<typeof myCourseRegistrationSchema>;
+
+export const myCourseRegistrationListSchema = z.strictObject({
+  registrations: z.array(myCourseRegistrationSchema),
+});
+
+export type MyCourseRegistrationList = z.infer<
+  typeof myCourseRegistrationListSchema
+>;

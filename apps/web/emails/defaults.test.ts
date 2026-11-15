@@ -29,6 +29,8 @@ const ARABIC_TAGS = {
   custom_training_request: "[طلب تدريب مخصص]",
   contact_message: "[رسالة تواصل]",
   account_new: "[حساب جديد]",
+  // Not in §6.21's table: the task gives the subject (P5A-T01).
+  newsletter_confirm: "[تأكيد الاشتراك]",
 } as const;
 
 const every = EMAIL_EVENTS.flatMap((event) =>

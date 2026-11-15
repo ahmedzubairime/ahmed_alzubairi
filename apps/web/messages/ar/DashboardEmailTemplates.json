@@ -30,7 +30,8 @@
     "course_registration": "تسجيل دورة",
     "custom_training_request": "طلب تدريب مخصص",
     "contact_message": "رسالة تواصل",
-    "account_new": "حساب جديد"
+    "account_new": "حساب جديد",
+    "newsletter_confirm": "تأكيد الاشتراك في النشرة"
   },
   "languageTabs": "اللغة",
   "invalidTab": "فيه أخطاء",
@@ -59,7 +60,8 @@
     "orgName": "اسم الجهة",
     "topic": "موضوع التدريب",
     "name": "اسم المرسل",
-    "subject": "موضوع الرسالة"
+    "subject": "موضوع الرسالة",
+    "confirmUrl": "رابط تأكيد الاشتراك"
   },
   "previewHeading": "المعاينة",
   "previewHint": "بقيم تجريبية. أي وسم HTML تكتبه يظهر كنص عادي.",

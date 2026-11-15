@@ -72,6 +72,8 @@ export const EMAIL_PAYLOADS = {
     subject: shortTextSchema,
   }),
   account_new: z.strictObject({ clientName: shortTextSchema }),
+  /** The double opt-in link (§6.15). Holds the raw token, so never logged. */
+  newsletter_confirm: z.strictObject({ confirmUrl: httpsUrlSchema }),
 } as const satisfies Record<EmailEvent, z.ZodObject>;
 
 export type EmailPayload<Event extends EmailEvent = EmailEvent> = z.infer<
@@ -88,7 +90,8 @@ export const EMAIL_PLACEHOLDERS = Object.fromEntries(
 
 /**
  * The only emails `profiles.notify_optional = false` turns off (the product
- * owner's decision, 2026-11-11). Every other event is always sent.
+ * owner's decision, 2026-11-11). Every other event is always sent, including
+ * `newsletter_confirm`: the subscriber asked for it.
  */
 export const OPTIONAL_EMAIL_EVENTS = [
   "meeting_reminder",

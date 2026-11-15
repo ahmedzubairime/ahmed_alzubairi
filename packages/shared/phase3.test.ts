@@ -269,6 +269,10 @@ describe("email contract", () => {
       bad: { name: "Name", subject: "Subject", message: "Text" },
     },
     account_new: { ok: { clientName: "Name" }, bad: {} },
+    newsletter_confirm: {
+      ok: { confirmUrl: "https://example.com/api/newsletter/confirm?token=t" },
+      bad: { confirmUrl: "http://example.com/api/newsletter/confirm?token=t" },
+    },
   };
 
   it("has a payload schema for every email event, and no other", () => {

@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { EMAIL_EVENTS } from "@repo/shared";
 import { NextIntlClientProvider } from "next-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -66,11 +67,11 @@ const save = () =>
   });
 
 describe("TemplateBoard", () => {
-  it("lists the 13 events by name, each marked default or edited", () => {
+  it("lists every event by name, each marked default or edited", () => {
     show(templateEntries([{ ...contact, bodyEn: "Mine" }]));
-    expect(screen.getAllByRole("listitem")).toHaveLength(13);
+    expect(screen.getAllByRole("listitem")).toHaveLength(EMAIL_EVENTS.length);
     expect(screen.getAllByText(en.status.edited)).toHaveLength(1);
-    expect(screen.getAllByText(en.status.default)).toHaveLength(12);
+    expect(screen.getAllByText(en.status.default)).toHaveLength(EMAIL_EVENTS.length - 1);
     expect(screen.getByRole("heading", { name: "Meeting reminder" })).toBeTruthy();
   });
 

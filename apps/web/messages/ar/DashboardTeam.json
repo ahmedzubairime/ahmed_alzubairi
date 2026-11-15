@@ -212,6 +212,13 @@
         "grant": "إتاحة وثيقة",
         "contact_first": "التواصل أولاً بشأن طلب وثيقة",
         "revoke": "سحب إتاحة وثيقة"
+      },
+      "course": {
+        "create": "إضافة دورة",
+        "update": "تعديل دورة"
+      },
+      "newsletter": {
+        "export": "تصدير مشتركي النشرة البريدية"
       }
     },
     "entities": {
@@ -223,7 +230,9 @@
       "meetings": "مواعيد الاجتماعات",
       "documents": "الوثائق",
       "document_requests": "طلبات الوثائق",
-      "courses": "الدورات"
+      "courses": "الدورات",
+      "newsletter_subscribers": "مشتركو النشرة البريدية",
+      "custom_training_requests": "طلبات التدريب المخصص"
     }
   }
 }

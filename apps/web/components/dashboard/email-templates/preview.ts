@@ -17,6 +17,7 @@ export type SampleWords = Readonly<Record<string, string>>;
 // Sample values that are not words. No real person, meeting or record.
 const SAMPLE_URL = "https://meet.example.com/sample";
 const SAMPLE_SITE = "https://example.com";
+const SAMPLE_CONFIRM_URL = `${SAMPLE_SITE}/api/newsletter/confirm?token=sample`;
 const SAMPLE_STARTS_AT = "2027-01-12T07:00:00.000Z";
 const SAMPLE_TIMEZONE = "Asia/Aden";
 const SAMPLE_ID = "00000000-0000-4000-8000-000000000000";
@@ -34,6 +35,7 @@ export function sampleValues(
   const fixed: EmailValues = {
     consultationId: SAMPLE_ID,
     url: SAMPLE_URL,
+    confirmUrl: SAMPLE_CONFIRM_URL,
     timezone: SAMPLE_TIMEZONE,
     startsAt: new Intl.DateTimeFormat(locale, {
       dateStyle: "full",
@@ -71,7 +73,9 @@ export function previewEmail(
           href:
             action.kind === "meeting"
               ? SAMPLE_URL
-              : `${SAMPLE_SITE}/${locale}${action.path}`,
+              : action.kind === "confirm"
+                ? SAMPLE_CONFIRM_URL
+                : `${SAMPLE_SITE}/${locale}${action.path}`,
           label: action.label[locale],
         }
       : undefined,

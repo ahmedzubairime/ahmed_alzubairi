@@ -141,8 +141,22 @@ export const EMAIL_EVENTS = [
   "custom_training_request",
   "contact_message",
   "account_new",
+  // Phase 5: the newsletter's double opt-in (§6.15). Not in §6.21's table; a
+  // subscriber may have no account.
+  "newsletter_confirm",
 ] as const;
 
 export const emailEventSchema = z.enum(EMAIL_EVENTS);
 
 export type EmailEvent = z.infer<typeof emailEventSchema>;
+
+/** `newsletter_subscribers.status` (§6.15, §7). */
+export const NEWSLETTER_STATUSES = [
+  "pending",
+  "confirmed",
+  "unsubscribed",
+] as const;
+
+export const newsletterStatusSchema = z.enum(NEWSLETTER_STATUSES);
+
+export type NewsletterStatus = z.infer<typeof newsletterStatusSchema>;

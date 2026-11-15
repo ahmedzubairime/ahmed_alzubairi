@@ -240,6 +240,28 @@ export const EMAIL_DEFAULTS = {
       ),
     },
   },
+  newsletter_confirm: {
+    ar: {
+      subject: "[تأكيد الاشتراك] النشرة البريدية",
+      body: text(
+        "السلام عليكم ورحمة الله،",
+        "شكراً لاشتراكك في النشرة البريدية. لن نرسل إليك أي رسالة قبل أن تؤكد اشتراكك.",
+        "لتأكيد الاشتراك افتح هذا الرابط:",
+        "{{confirmUrl}}",
+        "إذا لم تطلب الاشتراك فتجاهل هذه الرسالة، ولن يصلك شيء منا.",
+      ),
+    },
+    en: {
+      subject: "[Confirm subscription] Newsletter",
+      body: text(
+        "Hello,",
+        "Thank you for subscribing to the newsletter. We won't send you anything until you confirm.",
+        "To confirm your subscription, open this link:",
+        "{{confirmUrl}}",
+        "If you didn't ask to subscribe, ignore this email and you won't hear from us.",
+      ),
+    },
+  },
 } as const satisfies Record<EmailEvent, Record<Locale, TemplateText>>;
 
 /**
@@ -260,13 +282,14 @@ export const GENERIC_TEMPLATE: Record<Locale, TemplateText> = {
 /**
  * Where an email's button leads. `account` and `dashboard` paths are joined
  * to `NEXT_PUBLIC_APP_URL` and the recipient's language by the sender;
- * `meeting` uses the payload's own `url`. An event that goes to both a client
+ * `meeting` uses the payload's own `url`, and `confirm` its `confirmUrl`. An event that goes to both a client
  * and the team (`consultation_reply`, `course_registration`) has no button:
  * one link can't be right for both.
  */
 export type EmailAction =
   | { kind: "path"; path: string; label: Record<Locale, string> }
-  | { kind: "meeting"; label: Record<Locale, string> };
+  | { kind: "meeting"; label: Record<Locale, string> }
+  | { kind: "confirm"; label: Record<Locale, string> };
 
 const OPEN_DASHBOARD = { ar: "فتح لوحة التحكم", en: "Open the dashboard" };
 const JOIN_MEETING = { ar: "رابط الاجتماع", en: "Meeting link" };
@@ -297,6 +320,10 @@ export const EMAIL_ACTIONS: Record<EmailEvent, EmailAction | null> = {
     label: { ar: "عرض الرسائل", en: "View messages" },
   },
   account_new: { kind: "path", path: "/dashboard", label: OPEN_DASHBOARD },
+  newsletter_confirm: {
+    kind: "confirm",
+    label: { ar: "تأكيد الاشتراك", en: "Confirm subscription" },
+  },
 };
 
 /** The line under every email. */

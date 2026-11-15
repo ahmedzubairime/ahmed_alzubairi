@@ -78,12 +78,41 @@ describe("renderOutboxRow", () => {
             timezone: "Asia/Riyadh",
             documentTitle: { ar: "وثيقة", en: "Document" },
             courseTitle: { ar: "دورة", en: "Course" },
+            confirmUrl: "https://site.example/api/newsletter/confirm?token=t",
           },
         }),
       );
       expect(email.subject.startsWith("[")).toBe(true);
       expect(`${email.subject}${email.text}`).not.toContain("{{");
       expect(email.html).toContain(`dir="${locale === "ar" ? "rtl" : "ltr"}"`);
+    }
+  });
+
+  it.each(["ar", "en"] as const)("renders newsletter_confirm in %s with its confirm button", async (locale) => {
+    const confirmUrl = "https://site.example/api/newsletter/confirm?token=abc";
+    const email = await renderOutboxRow(
+      row({ event: "newsletter_confirm", locale, payload: { confirmUrl } }),
+    );
+    expect(email.subject).toBe(
+      locale === "ar" ? "[تأكيد الاشتراك] النشرة البريدية" : "[Confirm subscription] Newsletter",
+    );
+    expect(email.html).toMatch(new RegExp(`<html[^>]*\\slang="${locale}"`));
+    expect(email.html).toMatch(
+      new RegExp(`<html[^>]*\\sdir="${locale === "ar" ? "rtl" : "ltr"}"`),
+    );
+    expect(email.html).toContain(`href="${confirmUrl}"`);
+    expect(email.html).toContain(locale === "ar" ? "تأكيد الاشتراك" : "Confirm subscription");
+    // The body spells the link out, so the text part doesn't repeat it.
+    expect(email.text.split(confirmUrl)).toHaveLength(2);
+  });
+
+  it("a newsletter_confirm link that isn't https gets no button and no link", async () => {
+    for (const confirmUrl of ["http://site.example/c?token=a", "javascript:alert(1)"]) {
+      const email = await renderOutboxRow(
+        row({ event: "newsletter_confirm", locale: "en", payload: { confirmUrl } }),
+      );
+      expect(email.html).not.toContain("<a ");
+      expect(email.text).not.toContain(confirmUrl);
     }
   });
 

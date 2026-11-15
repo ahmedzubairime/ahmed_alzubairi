@@ -30,7 +30,8 @@
     "course_registration": "Course registration",
     "custom_training_request": "Custom training request",
     "contact_message": "Contact message",
-    "account_new": "New account"
+    "account_new": "New account",
+    "newsletter_confirm": "Newsletter confirmation"
   },
   "languageTabs": "Language",
   "invalidTab": "has errors",
@@ -59,7 +60,8 @@
     "orgName": "The organization's name",
     "topic": "The training topic",
     "name": "The sender's name",
-    "subject": "The message's subject"
+    "subject": "The message's subject",
+    "confirmUrl": "The link that confirms the subscription"
   },
   "previewHeading": "Preview",
   "previewHint": "With sample values. Any HTML tag you type shows as plain text.",

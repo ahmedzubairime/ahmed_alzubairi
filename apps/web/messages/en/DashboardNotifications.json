@@ -47,6 +47,7 @@
     "custom_training_request": "Custom training request",
     "contact_message": "Contact message",
     "account_new": "New account",
+    "newsletter_confirm": "Newsletter confirmation",
     "other": "Notification"
   },
   "errors": {

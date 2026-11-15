@@ -13,6 +13,9 @@ export const ERROR_CODES = [
   "file_too_large",
   "file_type_not_allowed",
   "too_many_attachments",
+  // Phase 5: `POST /api/courses/:id/register` refusals (409)
+  "course_full",
+  "course_closed",
 ] as const;
 
 export const errorCodeSchema = z.enum(ERROR_CODES);

@@ -24,3 +24,10 @@ export function contentCacheTag<Type extends ContentType>(
  * `lib/content` carries it, and the documents admin routes refresh it.
  */
 export const DOCUMENTS_CACHE_TAG = "content:documents";
+
+/**
+ * `courses` isn't a `ContentType` either. The public training pages in
+ * `lib/content` carry it, and the courses admin routes and registrations
+ * (seats left) refresh it.
+ */
+export const COURSES_CACHE_TAG = "content:courses";

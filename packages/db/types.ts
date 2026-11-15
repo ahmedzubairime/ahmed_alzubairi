@@ -1674,6 +1674,13 @@ export type Database = {
       disable_client: { Args: { client_id: string }; Returns: number }
       expire_document_grants: { Args: never; Returns: number }
       has_permission: { Args: { key: string }; Returns: boolean }
+      register_for_course: {
+        Args: { p_client_id: string; p_course_id: string }
+        Returns: {
+          outcome: string
+          seats_left: number
+        }[]
+      }
       request_document: {
         Args: { client_id: string; document_ids: string[]; purpose: string }
         Returns: {

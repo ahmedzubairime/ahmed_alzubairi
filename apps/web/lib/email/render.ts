@@ -71,8 +71,8 @@ async function loadTemplate(
 
 /**
  * The payload as placeholder values. `startsAt` (UTC) becomes a date and time
- * in the recipient's language and the payload's `timezone`. A `url` that isn't
- * an https link becomes empty, so the body never spells out a link the button
+ * in the recipient's language and the payload's `timezone`. A `url` or
+ * `confirmUrl` that isn't an https link becomes empty, so the body never spells out a link the button
  * refused.
  */
 function placeholderValues(payload: unknown, locale: Locale): EmailValues {
@@ -83,6 +83,9 @@ function placeholderValues(payload: unknown, locale: Locale): EmailValues {
   const values = emailValues(fields, locale);
   const { startsAt, timezone } = fields;
   if ("url" in fields) values.url = webLink(fields.url, ["https:"]) ?? "";
+  if ("confirmUrl" in fields) {
+    values.confirmUrl = webLink(fields.confirmUrl, ["https:"]) ?? "";
+  }
   if (typeof startsAt === "string" && !Number.isNaN(Date.parse(startsAt))) {
     values.startsAt = new Intl.DateTimeFormat(locale, {
       dateStyle: "full",
@@ -125,10 +128,13 @@ function actionOf(
 ): { href: string; label: string } | undefined {
   const action = event ? EMAIL_ACTIONS[event] : null;
   if (!action) return undefined;
+  const fields = payload as { url?: unknown; confirmUrl?: unknown } | null;
   const href =
     action.kind === "meeting"
-      ? webLink((payload as { url?: unknown } | null)?.url, ["https:"])
-      : (() => {
+      ? webLink(fields?.url, ["https:"])
+      : action.kind === "confirm"
+        ? webLink(fields?.confirmUrl, ["https:"])
+        : (() => {
           const base = appUrl();
           return base ? `${base}/${locale}${action.path}` : null;
         })();

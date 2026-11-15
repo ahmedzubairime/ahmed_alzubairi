@@ -8,9 +8,11 @@ import {
   documentRecommendationSchema,
   documentRequestStatusSchema,
   emailEventSchema,
+  localeSchema,
+  newsletterSourceSchema,
+  newsletterStatusSchema,
   orgTypeSchema,
   profileStatusSchema,
-  localeSchema,
 } from "./enums";
 import {
   clerkUserIdSchema,
@@ -270,6 +272,8 @@ export const adminCourseSchema = z.strictObject({
   onlineUrl: z.string().nullable(),
   seats: z.int().nullable(),
   status: contentStatusSchema,
+  /** Rows in `course_registrations` for this course. */
+  registrationCount: totalSchema,
 });
 
 export type AdminCourse = z.infer<typeof adminCourseSchema>;
@@ -288,11 +292,28 @@ export const createCourseSchema = z.strictObject(courseFields);
 
 export type CreateCourse = z.infer<typeof createCourseSchema>;
 
-/** `PATCH /api/admin/courses`. At least one field besides `id`. */
+/**
+ * `PATCH /api/admin/courses`. At least one field besides `id`. `null` clears
+ * an optional field: `seats: null` removes the seat limit.
+ */
 export const updateCourseSchema = z
-  .strictObject({ id: uuidSchema, ...courseFields })
-  .partial()
-  .required({ id: true })
+  .strictObject({
+    id: uuidSchema,
+    slug: courseFields.slug.optional(),
+    type: courseFields.type.optional(),
+    titleAr: shortTextSchema.nullable().optional(),
+    titleEn: shortTextSchema.nullable().optional(),
+    descriptionAr: longTextSchema.nullable().optional(),
+    descriptionEn: longTextSchema.nullable().optional(),
+    audienceAr: longTextSchema.nullable().optional(),
+    audienceEn: longTextSchema.nullable().optional(),
+    startsAt: utcDatetimeSchema.nullable().optional(),
+    placeAr: shortTextSchema.nullable().optional(),
+    placeEn: shortTextSchema.nullable().optional(),
+    onlineUrl: httpsUrlSchema.nullable().optional(),
+    seats: z.int().positive().nullable().optional(),
+    status: courseFields.status.optional(),
+  })
   .refine((body) => hasAnyField(body, ["id"]));
 
 export type UpdateCourse = z.infer<typeof updateCourseSchema>;
@@ -524,4 +545,89 @@ export const newsletterExportResponseSchema = z.string();
 
 export type NewsletterExportResponse = z.infer<
   typeof newsletterExportResponseSchema
+>;
+
+/** A row of `newsletter_subscribers`. Never the token hash. */
+export const newsletterSubscriberSchema = z.strictObject({
+  id: uuidSchema,
+  email: z.string(),
+  locale: localeSchema,
+  status: newsletterStatusSchema,
+  source: newsletterSourceSchema,
+  consentedAt: utcDatetimeSchema.nullable(),
+  createdAt: utcDatetimeSchema,
+});
+
+export type NewsletterSubscriber = z.infer<typeof newsletterSubscriberSchema>;
+
+/** The dashboard's subscriber list (a server read). `content.manage`. */
+export const newsletterSubscriberListSchema = z.strictObject({
+  subscribers: z.array(newsletterSubscriberSchema),
+  total: totalSchema,
+});
+
+export type NewsletterSubscriberList = z.infer<
+  typeof newsletterSubscriberListSchema
+>;
+
+/**
+ * The columns of `GET /api/admin/newsletter/export`, in order. Confirmed
+ * subscribers only: the token hash never leaves the database.
+ */
+export const NEWSLETTER_EXPORT_COLUMNS = [
+  "email",
+  "locale",
+  "source",
+  "consented_at",
+] as const;
+
+/** A row of `course_registrations`, with the trainee and the course. */
+export const courseRegistrationSchema = z.strictObject({
+  id: uuidSchema,
+  courseId: uuidSchema,
+  courseTitleAr: z.string().nullable(),
+  courseTitleEn: z.string().nullable(),
+  clientId: clerkUserIdSchema,
+  clientName: z.string(),
+  clientEmail: z.string(),
+  createdAt: utcDatetimeSchema,
+});
+
+export type CourseRegistration = z.infer<typeof courseRegistrationSchema>;
+
+/** The dashboard's registrations (a server read). `training.manage`. */
+export const courseRegistrationListSchema = z.strictObject({
+  registrations: z.array(courseRegistrationSchema),
+  total: totalSchema,
+});
+
+export type CourseRegistrationList = z.infer<
+  typeof courseRegistrationListSchema
+>;
+
+/** A row of `custom_training_requests`. `clientId` is null for a visitor. */
+export const customTrainingRequestRowSchema = z.strictObject({
+  id: uuidSchema,
+  clientId: clerkUserIdSchema.nullable(),
+  orgName: z.string(),
+  traineeCount: z.int().positive(),
+  topic: z.string(),
+  suggestedDate: z.iso.date(),
+  place: z.string().nullable(),
+  contactEmail: z.string(),
+  createdAt: utcDatetimeSchema,
+});
+
+export type CustomTrainingRequestRow = z.infer<
+  typeof customTrainingRequestRowSchema
+>;
+
+/** The dashboard's custom training requests (a server read). `training.manage`. */
+export const customTrainingRequestListSchema = z.strictObject({
+  requests: z.array(customTrainingRequestRowSchema),
+  total: totalSchema,
+});
+
+export type CustomTrainingRequestList = z.infer<
+  typeof customTrainingRequestListSchema
 >;

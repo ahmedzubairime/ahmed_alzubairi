@@ -39,6 +39,10 @@ export const AUDIT_ACTIONS = [
   "document_request.revoke",
   "document.view",
   "document.download",
+  // Phase 5
+  "course.create",
+  "course.update",
+  "newsletter.export",
 ] as const;
 
 export const auditActionSchema = z.enum(AUDIT_ACTIONS);
@@ -63,6 +67,9 @@ export const AUDIT_ENTITIES = [
   "documents",
   "document_requests",
   "courses",
+  // Phase 5
+  "newsletter_subscribers",
+  "custom_training_requests",
 ] as const;
 
 export const auditEntitySchema = z.enum(AUDIT_ENTITIES);

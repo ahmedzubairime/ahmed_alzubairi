@@ -21,6 +21,8 @@ import {
 import {
   consultationDetailResponseSchema,
   consultationListResponseSchema,
+  courseRegisterRequestSchema,
+  courseRegisterResponseSchema,
   createConsultationRequestSchema,
   createDocumentRequestResponseSchema,
   createDocumentRequestSchema,
@@ -172,7 +174,8 @@ export const ROUTES = {
   },
   "POST /api/courses/:id/register": {
     params: idParamsSchema,
-    response: okResponseSchema,
+    body: courseRegisterRequestSchema,
+    response: courseRegisterResponseSchema,
   },
   "POST /api/notifications/read": {
     body: readNotificationsRequestSchema,
