@@ -21,16 +21,21 @@ export function CopyLinkButton({
 }) {
   const [state, setState] = useState<State>("idle");
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const attempts = useRef(0);
   useEffect(() => () => clearTimeout(timer.current), []);
 
   async function copy() {
-    clearTimeout(timer.current);
+    // Only the latest click may set the state: an earlier one that finishes
+    // late must not hide this one's result.
+    const attempt = ++attempts.current;
     let ok = true;
     try {
       await navigator.clipboard.writeText(url);
     } catch {
       ok = false;
     }
+    if (attempt !== attempts.current) return;
+    clearTimeout(timer.current);
     setState(ok ? "copied" : "failed");
     // A failure stays: the visitor needs time to copy the link by hand.
     if (ok) timer.current = setTimeout(() => setState("idle"), 3000);
