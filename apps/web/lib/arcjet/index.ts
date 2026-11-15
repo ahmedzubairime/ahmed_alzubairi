@@ -1,5 +1,5 @@
 import "server-only";
-import arcjet, { detectBot, fixedWindow, shield } from "@arcjet/next";
+import arcjet, { detectBot, fixedWindow, shield, validateEmail } from "@arcjet/next";
 
 /**
  * Arcjet for public forms and download gates (§3 Security, §9). Every route
@@ -81,8 +81,50 @@ export async function protectForm(request: Request, limit: FormLimit): Promise<F
   }
 }
 
+function createEmailClient(key: string) {
+  return arcjet({
+    key,
+    rules: [validateEmail({ mode: "LIVE", deny: ["DISPOSABLE", "INVALID", "NO_MX_RECORDS"] })],
+  });
+}
+
+let emailClient: ReturnType<typeof createEmailClient> | null | undefined;
+
+/**
+ * True unless Arcjet refuses the address: disposable, invalid, or a domain
+ * with no mail server. Call it after `protectForm`, once the body is parsed.
+ * `route` names the caller in the log. It fails open like `protectForm`, and
+ * never logs the address.
+ */
+export async function validateFormEmail(
+  request: Request,
+  email: string,
+  route: string,
+): Promise<boolean> {
+  try {
+    if (emailClient === undefined) {
+      const key = process.env.ARCJET_KEY;
+      emailClient = key ? createEmailClient(key) : null;
+    }
+    if (!emailClient) {
+      console.error(`[arcjet] ${route}: ARCJET_KEY is not set, email accepted`);
+      return true;
+    }
+    const decision = await emailClient.protect(request, { email });
+    if (decision.isErrored()) {
+      console.error(`[arcjet] ${route}: email decision errored, email accepted:`, decision.reason.message);
+      return true;
+    }
+    return !(decision.isDenied() && decision.reason.isEmail());
+  } catch (error) {
+    console.error(`[arcjet] ${route}: email check failed, email accepted:`, error);
+    return true;
+  }
+}
+
 /** Test seam: forget the cached clients so a test can change ARCJET_KEY. */
 export function resetArcjetClients() {
   base = undefined;
+  emailClient = undefined;
   routeClients.clear();
 }
