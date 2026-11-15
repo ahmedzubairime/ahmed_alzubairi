@@ -1,0 +1,19 @@
+{
+  "notFound": "We couldn't find this course. It may have been deleted.",
+  "slugInvalid": "Use only letters, numbers and single hyphens in the link name.",
+  "slugTaken": "Another course already uses this link name. Choose a different one.",
+  "publishNeedsText": "To publish, add a title and a description in at least one language.",
+  "publishNeedsDate": "To publish an in-person or live online course, set its start date.",
+  "changedElsewhere": "Someone else changed this course just now. Reload the page and try again.",
+  "seatsBelowRegistrations": "More people than that have already registered. Choose a higher number of seats.",
+  "profileIncomplete": "Complete your profile before you register for a course.",
+  "notAClient": "Only client accounts can register for courses.",
+  "courseFull": "All seats are taken.",
+  "courseClosed": "Registration for this course is closed.",
+  "form": {
+    "validation_failed": "Some details aren't valid. Check them and try again.",
+    "rate_limited": "You've sent several requests in a short time. Please try again later.",
+    "forbidden": "We couldn't accept this request. Please use the contact page instead.",
+    "internal_error": "Something went wrong on our side. Please try again."
+  }
+}
