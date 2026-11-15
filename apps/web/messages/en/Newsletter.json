@@ -1,0 +1,32 @@
+{
+  "title": "Newsletter",
+  "intro": "New articles and resources, by email.",
+  "email": "Email",
+  "subscribe": "Subscribe",
+  "subscribing": "Subscribing…",
+  "required": "Enter your email address.",
+  "emailInvalid": "Enter a valid email address.",
+  "networkError": "We couldn't send your request. Check your connection and try again.",
+  "done": "Check your inbox. If this address isn't subscribed yet, we've sent it a link to confirm the subscription.",
+  "errors": {
+    "validation_failed": "This email address isn't valid. Check it and try again.",
+    "rate_limited": "You've tried several times in a short time. Please try again later.",
+    "forbidden": "We couldn't accept this request.",
+    "internal_error": "Something went wrong on our side. Please try again."
+  },
+  "confirm": {
+    "confirmed": {
+      "title": "Your subscription is confirmed",
+      "text": "Thank you. The newsletter will come to this address, and every message has an unsubscribe link."
+    },
+    "invalid": {
+      "title": "This link doesn't work",
+      "text": "It may have been used already, or replaced by a newer one. If you've already confirmed, you're subscribed. Otherwise, subscribe again from the form at the bottom of this page to get a new link."
+    },
+    "retry": {
+      "title": "We couldn't confirm your subscription",
+      "text": "Nothing was changed. Open the link in your email again."
+    },
+    "home": "Back to the home page"
+  }
+}
