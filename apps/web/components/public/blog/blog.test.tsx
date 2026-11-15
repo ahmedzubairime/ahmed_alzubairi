@@ -190,6 +190,7 @@ describe("BlogList", () => {
   it("says so when nothing is published, with no link to clear", () => {
     render(<BlogList result={page([])} areas={[]} query={NO_QUERY} />);
     expect(screen.getByText("empty")).toBeTruthy();
+    expect(screen.getByRole("status").textContent).toBe("");
     expect(screen.queryByRole("link", { name: "clearFilters" })).toBeNull();
     expect(screen.queryByRole("article")).toBeNull();
     expect(screen.queryByRole("navigation", { name: "categoriesLabel" })).toBeNull();
@@ -198,6 +199,7 @@ describe("BlogList", () => {
   it("offers to clear the filters when a search matches nothing", () => {
     render(<BlogList result={page([])} areas={areas} query={{ q: "zzz", category: null, page: 1 }} />);
     expect(screen.getByText("noResults")).toBeTruthy();
+    expect(screen.getByRole("status").textContent).toBe('searchResults:{"count":0,"q":"zzz"}');
     expect(screen.getByRole("link", { name: "clearFilters" }).getAttribute("href")).toBe("/blog");
   });
 });

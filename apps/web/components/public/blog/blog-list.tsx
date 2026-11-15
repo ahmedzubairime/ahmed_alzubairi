@@ -39,9 +39,9 @@ export function BlogList({
         )}
       </div>
 
-      {/* Announces the new count after a search or a filter. */}
+      {/* Announces the new count after a search or a filter, zero included. */}
       <p role="status" className="mt-8 text-sm font-semibold text-text-secondary">
-        {result.total > 0 &&
+        {(result.total > 0 || filtered) &&
           (query.q
             ? t("searchResults", { count: result.total, q: query.q })
             : t("resultsCount", { count: result.total }))}
