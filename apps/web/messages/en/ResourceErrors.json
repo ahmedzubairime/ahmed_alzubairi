@@ -1,0 +1,9 @@
+{
+  "invalid": "Some details aren't valid. Check them and try again.",
+  "emailRequired": "Enter your email address to download this resource.",
+  "emailInvalid": "This email address doesn't look right. Check it, or use another one.",
+  "notFound": "We couldn't find this resource.",
+  "rateLimited": "You've asked for several downloads in a short time. Please try again later.",
+  "denied": "We couldn't accept this request. Please try again from the resources page.",
+  "internal": "Something went wrong on our side. Please try again."
+}
