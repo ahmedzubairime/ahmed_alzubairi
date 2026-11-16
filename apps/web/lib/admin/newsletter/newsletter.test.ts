@@ -11,10 +11,9 @@ import { CSV_BOM, csvCell, toCsv } from "./csv";
 import { handleNewsletterExport, type NewsletterExportDeps } from "./route";
 import {
   countSignupsSince,
-  EXPORT_BATCH_SIZE,
   exportSubscribers,
-  likePattern,
   listSubscribers,
+  literalPattern,
 } from "./store";
 
 vi.mock("@clerk/nextjs/server", () => ({ auth: vi.fn() }));
@@ -230,7 +229,7 @@ function fakeClient(pages: Record<string, unknown>[][], count: number | null = n
       const call = { table, columns: "", options: undefined as unknown, steps: [] as unknown[][] };
       calls.push(call);
       const builder: Record<string, unknown> = {};
-      for (const name of ["eq", "ilike", "order", "range", "gte"]) {
+      for (const name of ["eq", "filter", "or", "order", "range", "limit", "gte"]) {
         builder[name] = (...args: unknown[]) => (call.steps.push([name, ...args]), builder);
       }
       builder.select = (columns: string, options?: unknown) => {
@@ -264,7 +263,7 @@ describe("the subscriber reads", () => {
       page: 2,
       pageSize: 20,
       status: "pending",
-      search: "50%_off",
+      search: "50%_off*",
     });
     expect(result.total).toBe(41);
     expect(result.subscribers).toEqual([subscriber()]);
@@ -273,7 +272,9 @@ describe("the subscriber reads", () => {
     // Never `*` and never the token hash: the member has no grant on it.
     expect(call?.columns).toBe("id, email, locale, status, source, consented_at, created_at");
     expect(call?.steps).toContainEqual(["eq", "status", "pending"]);
-    expect(call?.steps).toContainEqual(["ilike", "email", "%50\\%\\_off%"]);
+    // Matched letter for letter: `*` must not become a wildcard.
+    expect(call?.steps).toContainEqual(["filter", "email", "imatch", "50%_off\\*"]);
+    expect(call?.steps.map((step) => step[0])).not.toContain("ilike");
     expect(call?.steps).toContainEqual(["range", 20, 39]);
   });
 
@@ -284,24 +285,99 @@ describe("the subscriber reads", () => {
     expect(calls[0]?.steps.map((step) => step[0])).toEqual(["order", "order", "range"]);
   });
 
-  it("escapes the wildcards in a search", () => {
-    expect(likePattern("a_b%c\\d")).toBe("%a\\_b\\%c\\\\d%");
+  it.each([
+    ["*", "\\*"],
+    ["a.b", "a\\.b"],
+    ["1+1", "1\\+1"],
+    ["^a|b$", "\\^a\\|b\\$"],
+    ["(x)[y]{z}?", "\\(x\\)\\[y\\]\\{z\\}\\?"],
+    ["back\\slash", "back\\\\slash"],
+    ["plain_text%", "plain_text%"],
+  ])("makes the search %j a literal", (term, pattern) => {
+    expect(literalPattern(term)).toBe(pattern);
+    // And as a regex it matches exactly the term, case-insensitively.
+    const regex = new RegExp(pattern, "i");
+    expect(regex.test(`x${term.toUpperCase()}x`)).toBe(true);
+    expect(regex.test("reader@example.com")).toBe(false);
   });
 
-  it("exports every matching row in batches, with the same filter each time", async () => {
-    const full = Array.from({ length: EXPORT_BATCH_SIZE }, (_, index) =>
-      dbRow({ email: `r${index}@example.com` }),
-    );
-    const { client, calls } = fakeClient([full, [dbRow({ email: "last@example.com" })]]);
-    const rows = await exportSubscribers(client, { status: "confirmed", search: "example" });
-    expect(rows).toHaveLength(EXPORT_BATCH_SIZE + 1);
+  it("exports in batches that start after the last row read, with the same filter each time", async () => {
+    const first = [
+      dbRow({ id: "a1", email: "r1@example.com", created_at: "2026-11-01T07:00:00.123456+00:00" }),
+      dbRow({ id: "a2", email: "r2@example.com", created_at: "2026-11-01T08:00:00.654321+00:00" }),
+    ];
+    const { client, calls } = fakeClient([first, [dbRow({ id: "a3", email: "last@example.com" })]]);
+    const rows = await exportSubscribers(client, { status: "confirmed", search: "example" }, 2);
+    expect(rows.map((row) => row.email)).toEqual(["r1@example.com", "r2@example.com", "last@example.com"]);
     expect(calls).toHaveLength(2);
     for (const call of calls) {
       expect(call.columns).not.toContain("confirm_token_hash");
       expect(call.steps).toContainEqual(["eq", "status", "confirmed"]);
-      expect(call.steps).toContainEqual(["ilike", "email", "%example%"]);
+      expect(call.steps).toContainEqual(["filter", "email", "imatch", "example"]);
+      expect(call.steps).toContainEqual(["limit", 2]);
+      // Never a row number: an offset shifts when a row leaves the filter.
+      expect(call.steps.map((step) => step[0])).not.toContain("range");
     }
-    expect(calls[1]?.steps).toContainEqual(["range", EXPORT_BATCH_SIZE, 2 * EXPORT_BATCH_SIZE - 1]);
+    expect(calls[0]?.steps.map((step) => step[0])).not.toContain("or");
+    // The cursor is the time exactly as the database wrote it, then the id.
+    expect(calls[1]?.steps).toContainEqual([
+      "or",
+      'created_at.gt."2026-11-01T08:00:00.654321+00:00",and(created_at.eq."2026-11-01T08:00:00.654321+00:00",id.gt.a2)',
+    ]);
+  });
+
+  it("a subscriber who unsubscribes between batches doesn't make the export skip one", async () => {
+    // A table that answers the way Postgres would: filter, cursor, order, limit.
+    const table = ["a", "b", "c", "d", "e"].map((id, index) => ({
+      ...dbRow({ id, email: `${id}@example.com` }),
+      created_at: `2026-11-0${index + 1}T08:00:00+00:00`,
+    }));
+    let reads = 0;
+    const client = {
+      from() {
+        let status: string | undefined;
+        let after: { created_at: string; id: string } | undefined;
+        let limit = Infinity;
+        const builder: Record<string, unknown> = {
+          select: () => builder,
+          eq: (_column: string, value: string) => ((status = value), builder),
+          filter: () => builder,
+          order: () => builder,
+          or: (filter: string) => {
+            const match = /^created_at\.gt\."([^"]+)",and\(created_at\.eq\."\1",id\.gt\.(\w+)\)$/.exec(filter);
+            if (!match) throw new Error(`unexpected cursor ${filter}`);
+            after = { created_at: match[1] ?? "", id: match[2] ?? "" };
+            return builder;
+          },
+          limit: (count: number) => ((limit = count), builder),
+          then: (resolve: (value: unknown) => unknown) => {
+            const data = table
+              .filter((row) => !status || row.status === status)
+              .filter(
+                (row) =>
+                  !after ||
+                  row.created_at > after.created_at ||
+                  (row.created_at === after.created_at && row.id > after.id),
+              )
+              .slice(0, limit);
+            reads += 1;
+            // After the first batch is read, its first subscriber unsubscribes.
+            if (reads === 1) table[0]!.status = "unsubscribed";
+            return resolve({ data, error: null });
+          },
+        };
+        return builder;
+      },
+    };
+    const rows = await exportSubscribers(client as never, { status: "confirmed" }, 2);
+    // With row numbers, "c" would slide into the first batch's place and be skipped.
+    expect(rows.map((row) => row.email)).toEqual([
+      "a@example.com",
+      "b@example.com",
+      "c@example.com",
+      "d@example.com",
+      "e@example.com",
+    ]);
   });
 
   it("counts signups since a date without reading a row", async () => {

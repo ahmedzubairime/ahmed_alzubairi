@@ -65,6 +65,9 @@ export default async function NewsletterPage({
 
       {/* A plain GET form: the filter lives in the address and works without scripts. */}
       <form
+        // Remounts when the applied filter changes, so "Clear" also resets
+        // what was typed but not applied.
+        key={[list.search, list.status].join("|")}
         method="get"
         role="search"
         aria-label={t("filters.label")}

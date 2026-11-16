@@ -54,18 +54,23 @@ type Filter = { status?: NewsletterStatus; search?: string };
 /** The status filter and the email search, on a list or a count query. */
 function filtered<Query extends {
   eq: (column: string, value: string) => Query;
-  ilike: (column: string, pattern: string) => Query;
+  filter: (column: string, operator: string, value: string) => Query;
 }>(start: Query, filter: Filter): Query {
   let query = start;
   if (filter.status) query = query.eq("status", filter.status);
-  // `ilike` takes the pattern as a value, so only the wildcards need escaping.
-  if (filter.search) query = query.ilike("email", likePattern(filter.search));
+  // A case-insensitive regex match on the escaped term, not `ilike`:
+  // PostgREST turns every `*` in a like pattern into `%`, and that can't be
+  // escaped, so a search for `*` would match every address.
+  if (filter.search) query = query.filter("email", "imatch", literalPattern(filter.search));
   return query;
 }
 
-/** A search term as an `ilike` pattern: `%`, `_` and `\` match themselves. */
-export function likePattern(term: string): string {
-  return `%${term.replace(/[\\%_]/g, "\\$&")}%`;
+/**
+ * A search term as a regular expression that matches it letter for letter:
+ * every character with a meaning in a regex is escaped.
+ */
+export function literalPattern(term: string): string {
+  return term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 /**
@@ -111,24 +116,34 @@ export const EXPORT_BATCH_SIZE = 1000;
 /**
  * Every subscriber the filter matches, oldest first, for the CSV. Read in
  * batches with the member's own client, so RLS applies here too.
+ *
+ * Each batch starts after the last row of the one before (`created_at`, then
+ * `id`), not at a row number. A subscriber who confirms or unsubscribes while
+ * the export runs then can't shift the rows and make it skip one.
  */
 export async function exportSubscribers(
   user: Client,
   filter: Filter,
+  batchSize: number = EXPORT_BATCH_SIZE,
 ): Promise<NewsletterSubscriber[]> {
   const all: NewsletterSubscriber[] = [];
-  for (let from = 0; ; from += EXPORT_BATCH_SIZE) {
-    const { data, error } = await filtered(
-      user.from("newsletter_subscribers").select(COLUMNS),
-      filter,
-    )
+  let last: { created_at: string; id: string } | undefined;
+  for (;;) {
+    let query = filtered(user.from("newsletter_subscribers").select(COLUMNS), filter);
+    if (last) {
+      // The time as the database wrote it, quoted: it holds `:`, `.` and `+`.
+      query = query.or(
+        `created_at.gt."${last.created_at}",and(created_at.eq."${last.created_at}",id.gt.${last.id})`,
+      );
+    }
+    const { data, error } = await query
       .order("created_at", { ascending: true })
       .order("id")
-      .range(from, from + EXPORT_BATCH_SIZE - 1);
-    if (error?.code === "PGRST103") break;
+      .limit(batchSize);
     if (error) throw new Error(`newsletter export failed: ${error.code}`);
     all.push(...data.flatMap((row) => toSubscriber(row) ?? []));
-    if (data.length < EXPORT_BATCH_SIZE) break;
+    last = data.at(-1);
+    if (data.length < batchSize || !last) break;
   }
   return all;
 }
