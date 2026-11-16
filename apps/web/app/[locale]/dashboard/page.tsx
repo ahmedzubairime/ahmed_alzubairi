@@ -1,5 +1,7 @@
+import { PERMISSIONS } from "@repo/shared";
 import { getTranslations } from "next-intl/server";
 import { grantedPermissions } from "@/components/dashboard/access";
+import { loadNewSignupCount, NEW_SIGNUP_DAYS } from "@/components/dashboard/newsletter/data";
 import {
   sectionPermissions,
   type DashboardSection,
@@ -20,6 +22,15 @@ export default async function DashboardPage({
     getTranslations("DashboardContent"),
     grantedPermissions(sectionPermissions(), locale === "en" ? "en" : "ar"),
   ]);
+  // The summary's one number so far (§6.20): newsletter signups this week.
+  // Only for a member who may read subscribers, with their own client (RLS).
+  // A failed count leaves the line out: it must not take the page down.
+  const newSignups = granted.has(PERMISSIONS.CONTENT_MANAGE)
+    ? await loadNewSignupCount().catch(() => {
+        console.error("dashboard: newsletter signup count failed");
+        return null;
+      })
+    : null;
   const sections = visibleSections(granted).filter(
     (section): section is DashboardSection & { key: Exclude<DashboardSection["key"], "home"> } =>
       section.key !== "home",
@@ -50,6 +61,11 @@ export default async function DashboardPage({
               <p className="mt-1 text-sm text-text-secondary">
                 {t(`home.sections.${section.key}`)}
               </p>
+              {section.key === "newsletter" && newSignups !== null && (
+                <p className="mt-2 text-sm font-semibold text-text">
+                  {t("home.newSignups", { count: newSignups, days: NEW_SIGNUP_DAYS })}
+                </p>
+              )}
             </Card>
           ))}
         </ul>

@@ -7,6 +7,7 @@ export type DashboardSection = {
     | "content"
     | "testimonials"
     | "messages"
+    | "newsletter"
     | "consultations"
     | "clients"
     | "documentRequests"
@@ -60,6 +61,12 @@ export const DASHBOARD_SECTIONS: readonly DashboardSection[] = [
     key: "messages",
     href: "/dashboard/messages",
     permission: PERMISSIONS.MESSAGES_VIEW,
+  },
+  {
+    key: "newsletter",
+    href: "/dashboard/newsletter",
+    // Subscribers are read with content.manage (RLS), as §8's export is.
+    permission: PERMISSIONS.CONTENT_MANAGE,
   },
   {
     key: "consultations",

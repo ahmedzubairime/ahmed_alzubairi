@@ -58,7 +58,8 @@ describe("NewsletterSignup", () => {
     });
     // The form is gone, and the text never says whether the address was known.
     expect(screen.queryByRole("textbox")).toBeNull();
-    expect(document.activeElement).toBe(screen.getByRole("status"));
+    // Focus moves in an effect, after the text is already on screen.
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("status")));
   });
 
   it.each([

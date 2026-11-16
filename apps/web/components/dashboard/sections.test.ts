@@ -22,9 +22,19 @@ describe("dashboard menu", () => {
     ]);
   });
 
-  it("shows Content and Testimonials to a member with content.manage", () => {
+  it("shows Content, Testimonials and Newsletter to a member with content.manage", () => {
     const keys = visibleSections(new Set([PERMISSIONS.CONTENT_MANAGE])).map((s) => s.key);
-    expect(keys).toEqual(["home", "content", "testimonials"]);
+    expect(keys).toEqual(["home", "content", "testimonials", "newsletter"]);
+  });
+
+  it("shows Newsletter only with content.manage", () => {
+    const section = DASHBOARD_SECTIONS.find((item) => item.key === "newsletter");
+    expect(section).toMatchObject({
+      href: "/dashboard/newsletter",
+      permission: PERMISSIONS.CONTENT_MANAGE,
+    });
+    const others = Object.values(PERMISSIONS).filter((key) => key !== PERMISSIONS.CONTENT_MANAGE);
+    expect(visibleSections(new Set<Permission>(others)).map((s) => s.key)).not.toContain("newsletter");
   });
 
   it("shows Testimonials to a member with only testimonials.approve", () => {
@@ -78,7 +88,7 @@ describe("dashboard menu", () => {
     expect(keys).not.toContain("consultations");
   });
 
-  it("hides Clients and Documents from a content editor, and shows Document requests", () => {
+  it("hides Clients and Documents from a content editor, and shows Newsletter and Document requests", () => {
     const editor = new Set<Permission>([
       PERMISSIONS.DOCUMENT_REQUESTS_RECOMMEND,
       PERMISSIONS.DOCUMENTS_VIEW,
@@ -88,6 +98,7 @@ describe("dashboard menu", () => {
       "home",
       "content",
       "testimonials",
+      "newsletter",
       "documentRequests",
     ]);
   });
@@ -120,7 +131,14 @@ describe("dashboard menu", () => {
     ];
     const others = Object.values(PERMISSIONS).filter((key) => !own.includes(key));
     const keys = visibleSections(new Set(others)).map((s) => s.key);
-    expect(keys).toEqual(["home", "content", "testimonials", "documentRequests", "documents"]);
+    expect(keys).toEqual([
+      "home",
+      "content",
+      "testimonials",
+      "newsletter",
+      "documentRequests",
+      "documents",
+    ]);
   });
 
   it("shows the admin every section", () => {
@@ -141,6 +159,7 @@ describe("dashboard menu", () => {
       "content",
       "testimonials",
       "messages",
+      "newsletter",
       "consultations",
       "clients",
       "documentRequests",

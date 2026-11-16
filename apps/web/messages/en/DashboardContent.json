@@ -5,6 +5,7 @@
     "content": "Content",
     "testimonials": "Testimonials and logos",
     "messages": "Messages",
+    "newsletter": "Newsletter",
     "consultations": "Consultations",
     "clients": "Clients",
     "documentRequests": "Document requests",
@@ -15,11 +16,13 @@
   "home": {
     "title": "Dashboard",
     "intro": "Choose a section from the menu.",
+    "newSignups": "{count, plural, =0 {No new signups in the last {days} days} one {# new signup in the last {days} days} other {# new signups in the last {days} days}}",
     "noSections": "No sections are open to you yet. Ask the admin if you need access.",
     "sections": {
       "content": "Pages, services, projects and the rest of the public site.",
       "testimonials": "Testimonials and logos, with their letters, consent and the admin's approval.",
       "messages": "Messages sent from the contact page.",
+      "newsletter": "Newsletter subscribers and the export of confirmed ones.",
       "consultations": "Client consultations: chats, statuses, assignment and meetings.",
       "clients": "Client accounts: find one, disable or reactivate it.",
       "documentRequests": "Requests to see protected documents: recommend, decide, withdraw, and the access log.",

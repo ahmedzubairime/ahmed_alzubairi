@@ -1,0 +1,56 @@
+{
+  "title": "Newsletter",
+  "intro": "Everyone who signed up for the newsletter. A subscription changes only through the confirm link and the unsubscribe link.",
+  "filters": {
+    "label": "Find subscribers",
+    "search": "Search",
+    "searchHint": "Part of an email address.",
+    "show": "Show",
+    "all": "All",
+    "apply": "Apply",
+    "clear": "Clear"
+  },
+  "statuses": {
+    "pending": "Not confirmed yet",
+    "confirmed": "Confirmed",
+    "unsubscribed": "Unsubscribed"
+  },
+  "sources": {
+    "footer": "Footer",
+    "home": "Home page",
+    "blog": "Blog",
+    "resource": "Resource download"
+  },
+  "languages": {
+    "ar": "Arabic",
+    "en": "English"
+  },
+  "count": "{total, plural, =0 {No subscribers} one {# subscriber} other {# subscribers}}",
+  "empty": {
+    "title": "No subscribers yet",
+    "text": "An address shows here as soon as someone signs up.",
+    "filteredTitle": "No subscribers match",
+    "filteredText": "Try another search, or clear the filter."
+  },
+  "row": {
+    "email": "Email",
+    "source": "Signed up from",
+    "language": "Language",
+    "signedUp": "Signed up",
+    "consented": "Consent given",
+    "none": "Not recorded"
+  },
+  "export": {
+    "title": "Export",
+    "button": "Export confirmed subscribers",
+    "text": "A CSV file for a spreadsheet. It holds confirmed subscribers only, never addresses that haven't confirmed or that unsubscribed.",
+    "withSearch": "The file follows your email search.",
+    "statusIgnored": "The list is showing another status. The file still holds confirmed subscribers only."
+  },
+  "paging": {
+    "label": "Pages",
+    "previous": "Newer",
+    "next": "Older",
+    "position": "Page {page} of {pages}"
+  }
+}
