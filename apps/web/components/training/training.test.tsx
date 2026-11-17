@@ -323,11 +323,30 @@ describe("RegistrationPanel", () => {
     expect(screen.queryByRole("link")).toBeNull();
   });
 
-  it.each([
-    ["a past course", { startsAt: "2026-12-01T09:00:00.000Z" }],
-    ["a course with no date", { startsAt: null }],
-  ])("%s is closed", async (_label, rest) => {
-    await panel(CLIENT, rest);
+  it.each([{ kind: "signed_out" }, CLIENT, { kind: "team" }] as const)(
+    "a past course shows $kind انتهت الدورة and no way to register",
+    async (viewer) => {
+      await panel(viewer, { startsAt: "2026-11-06T09:00:00.000Z", seatsLeft: 0 }, "ar");
+      expect(screen.getByText("انتهت الدورة.")).toBeTruthy();
+      expect(screen.queryByText(ar.register.full)).toBeNull();
+      expect(screen.queryByRole("button")).toBeNull();
+      expect(screen.queryByRole("link")).toBeNull();
+    },
+  );
+
+  it("a past course says it has ended in English", async () => {
+    await panel(CLIENT, { startsAt: "2026-11-06T09:00:00.000Z" });
+    expect(screen.getByText("This course has ended.")).toBeTruthy();
+  });
+
+  it("a client registered for a past course still sees their registration", async () => {
+    await panel({ kind: "client", registered: true, onlineUrl: null }, { startsAt: "2026-11-06T09:00:00.000Z" });
+    expect(screen.getByText(en.register.registered)).toBeTruthy();
+    expect(screen.queryByText(en.register.ended)).toBeNull();
+  });
+
+  it("a course with no date is closed", async () => {
+    await panel(CLIENT, { startsAt: null });
     expect(screen.getByText(en.register.closed)).toBeTruthy();
     expect(screen.queryByRole("button")).toBeNull();
   });

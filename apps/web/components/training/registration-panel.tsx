@@ -82,6 +82,13 @@ export async function RegistrationPanel({
       </div>
     );
   }
+  if (state === "ended") {
+    return (
+      <p className="font-semibold text-text">
+        {t("register.ended")}
+      </p>
+    );
+  }
   if (state === "closed") return <p className={NOTE}>{t("register.closed")}</p>;
   if (state === "full") {
     return (

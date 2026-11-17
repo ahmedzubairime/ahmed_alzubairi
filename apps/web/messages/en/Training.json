@@ -32,6 +32,7 @@
     "teamOnly": "Registration is for client accounts. Team accounts can't register.",
     "full": "Fully booked",
     "closed": "Registration for this course is closed.",
+    "ended": "This course has ended.",
     "soon": "Coming soon. Registration isn't open for this course yet.",
     "custom": "This training is arranged with each organization. Use the custom training form to ask for it.",
     "registered": "You're registered for this course.",

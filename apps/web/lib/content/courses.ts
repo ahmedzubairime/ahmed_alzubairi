@@ -47,9 +47,10 @@ export type CourseDetail = Course & {
  * - `soon`: a recorded course, shown with the "قريباً" badge and nothing else.
  * - `open`: the register button.
  * - `full`: "اكتملت المقاعد".
- * - `closed`: no registration (a custom course, no date, or the date passed).
+ * - `ended`: the date passed: "انتهت الدورة", no register button.
+ * - `closed`: no registration (a custom course, or one with no date).
  */
-export type CourseState = "soon" | "open" | "full" | "closed";
+export type CourseState = "soon" | "open" | "full" | "ended" | "closed";
 
 const COLUMNS =
   "id, slug, type, title_ar, title_en, description_ar, description_en, audience_ar, audience_en, starts_at, place_ar, place_en, seats, status";
@@ -115,11 +116,27 @@ async function registrationCounts(courseIds: string[]): Promise<Map<string, numb
 }
 
 /**
- * Courses in this language (§6.7): dated ones first, soonest first, then the
- * ones with no date. Past courses stay listed; `courseState` says what each
- * one offers.
+ * True while a course belongs on the training page: it has no date, or its
+ * date hasn't come yet. The same instant `courseState` calls ended is out.
  */
-export async function getCourses(locale: Locale): Promise<Course[]> {
+export function isUpcoming(course: Pick<Course, "startsAt">, now: Date = new Date()): boolean {
+  return course.startsAt === null || new Date(course.startsAt).getTime() > now.getTime();
+}
+
+/**
+ * Courses in this language for the training page (§6.7): dated ones first,
+ * soonest first, then the ones with no date. A course whose date has passed
+ * isn't listed; its own page still opens and shows it ended.
+ *
+ * The read is cached for hours, so "has the date passed" is decided here, out
+ * of the cache, at `now`.
+ */
+export async function getCourses(locale: Locale, now: Date = new Date()): Promise<Course[]> {
+  return (await getAllCourses(locale)).filter((course) => isUpcoming(course, now));
+}
+
+/** Every public course in this language, past ones included. Cached by tag. */
+async function getAllCourses(locale: Locale): Promise<Course[]> {
   "use cache";
   cacheTag(COURSES_CACHE_TAG);
   cacheLife("hours");
@@ -206,7 +223,8 @@ export function courseState(
 ): CourseState {
   if (course.type === "recorded") return "soon";
   if (course.type === "custom") return "closed";
-  if (!course.startsAt || new Date(course.startsAt).getTime() <= now.getTime()) return "closed";
+  if (!course.startsAt) return "closed";
+  if (!isUpcoming(course, now)) return "ended";
   if (course.seatsLeft !== null && course.seatsLeft <= 0) return "full";
   return "open";
 }
