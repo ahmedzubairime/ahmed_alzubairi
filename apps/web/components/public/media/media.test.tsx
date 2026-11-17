@@ -97,9 +97,15 @@ describe("embedUrl", () => {
 
   it("frames the Vimeo player", () => {
     expect(embedUrl("https://vimeo.com/123456789")).toBe("https://player.vimeo.com/video/123456789?dnt=1");
-    expect(embedUrl("https://player.vimeo.com/video/123456789?h=abc")).toBe(
+    expect(embedUrl("https://player.vimeo.com/video/123456789")).toBe(
       "https://player.vimeo.com/video/123456789?dnt=1",
     );
+  });
+
+  it("keeps an unlisted Vimeo video, which needs its hash, as a link", () => {
+    expect(embedUrl("https://player.vimeo.com/video/123456789?h=abc")).toBeNull();
+    expect(embedUrl("https://vimeo.com/123456789?h=abc")).toBeNull();
+    expect(embedUrl("https://vimeo.com/123456789/abcdef1234")).toBeNull();
   });
 
   it("frames nothing else", () => {

@@ -138,6 +138,8 @@ export function EmailGateDialog({ id, title, onClose }: { id: string; title: str
               onChange={(event) => {
                 setEmail(event.target.value);
                 setMissing(false);
+                // A server error was about the old address; drop it with the edit.
+                setState((current) => (current.step === "form" && current.error ? { step: "form", error: null } : current));
               }}
               error={missing ? t("emailRequired") : undefined}
               autoComplete="email"

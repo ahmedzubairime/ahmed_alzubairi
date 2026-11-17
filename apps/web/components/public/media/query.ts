@@ -44,6 +44,10 @@ function youtubeId(url: URL): string | null {
 }
 
 function vimeoId(url: URL): string | null {
+  // An unlisted video plays only with its privacy hash (`?h=`, or a second path
+  // part on vimeo.com). The frame is rebuilt from the id alone, so such a video
+  // stays a link rather than a frame that can't play it.
+  if (url.searchParams.has("h")) return null;
   const parts = url.pathname.split("/").filter(Boolean);
   if (url.hostname === "player.vimeo.com") return parts[0] === "video" ? (parts[1] ?? null) : null;
   return (url.hostname === "vimeo.com" || url.hostname === "www.vimeo.com") && parts.length === 1
@@ -55,7 +59,8 @@ function vimeoId(url: URL): string | null {
  * The embed address for a video, or null when its host isn't allowed (§6.10).
  * Only YouTube (through youtube-nocookie.com) and the Vimeo player are ever
  * framed. The address is rebuilt from the video's id alone, so nothing else
- * from the stored URL reaches the frame. Anything else shows as a link.
+ * from the stored URL reaches the frame. Anything else, including an unlisted
+ * Vimeo video that needs its hash, shows as a link.
  */
 export function embedUrl(value: string | null): string | null {
   const href = webUrl(value);

@@ -141,6 +141,17 @@ describe("requestDownload", () => {
     const odd = vi.fn<typeof fetch>().mockResolvedValue(reply(200, { url: "not a url" }));
     expect(await requestDownload(ID, undefined, odd)).toEqual({ ok: false, code: null, message: null });
   });
+
+  it("gives up on a request that hangs past the timeout", async () => {
+    const hang = vi.fn<typeof fetch>(
+      (_input, init) =>
+        new Promise<Response>((_resolve, reject) =>
+          init?.signal?.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError"))),
+        ),
+    );
+    expect(await requestDownload(ID, undefined, hang, 10)).toEqual({ ok: false, code: null, message: null });
+    expect(hang.mock.calls[0]?.[1]?.signal?.aborted).toBe(true);
+  });
 });
 
 describe("ResourceDownload", () => {
@@ -185,6 +196,10 @@ describe("ResourceDownload", () => {
     expect(await dialog.findByText("Bad email")).toBeTruthy();
     expect(sentBody(fetchMock)).toEqual({ email: "bad@example.com" });
     expect(startDownload).not.toHaveBeenCalled();
+
+    // Editing the email clears the server's message about the old one.
+    fireEvent.change(dialog.getByLabelText("email"), { target: { value: "good@example" } });
+    expect(dialog.queryByText("Bad email")).toBeNull();
 
     // An accepted email: the download starts.
     fireEvent.change(dialog.getByLabelText("email"), { target: { value: "good@example.com" } });
