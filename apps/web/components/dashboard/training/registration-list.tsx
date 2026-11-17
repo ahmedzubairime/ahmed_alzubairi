@@ -48,7 +48,7 @@ export function RegistrationList({
                 <div className="flex min-w-0 flex-wrap gap-x-1">
                   <dt>{t("email")}:</dt>
                   {/* An address reads left to right in both languages, and may be long. */}
-                  <dd className="min-w-0 break-all text-text">
+                  <dd className="min-w-0 text-text wrap-anywhere">
                     <bdi dir="ltr">{row.email}</bdi>
                   </dd>
                 </div>
@@ -58,7 +58,7 @@ export function RegistrationList({
                   <dt>{t("course")}:</dt>
                   <dd className="min-w-0 text-text wrap-anywhere">
                     <Link href={coursePagePath(row.courseId)} className="hover:underline">
-                      {course}
+                      <bdi>{course}</bdi>
                     </Link>
                   </dd>
                 </div>

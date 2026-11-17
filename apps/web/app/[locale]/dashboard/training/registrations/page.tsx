@@ -60,7 +60,7 @@ export default async function RegistrationsPage({ params, searchParams }: { para
         method="get"
         role="search"
         aria-label={t("filters.label")}
-        className="flex flex-wrap items-end gap-3"
+        className="flex flex-wrap items-start gap-3"
       >
         {list.pageSize !== DEFAULT_PAGE_SIZE && <input type="hidden" name="pageSize" value={list.pageSize} />}
         <TextField
@@ -80,7 +80,8 @@ export default async function RegistrationsPage({ params, searchParams }: { para
             </option>
           ))}
         </Select>
-        <div className="flex gap-2">
+        {/* The label's line and its gap, so the buttons sit level with the fields. */}
+        <div className="mt-6 flex gap-2">
           <Button type="submit" variant="secondary">
             {t("filters.apply")}
           </Button>
