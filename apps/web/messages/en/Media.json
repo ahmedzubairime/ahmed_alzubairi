@@ -1,0 +1,15 @@
+{
+  "title": "Media and events",
+  "description": "Interviews, conferences, talks and workshops.",
+  "intro": "Interviews, conferences, talks and workshops.",
+  "categoriesLabel": "Category",
+  "resultsCount": "{count, plural, =0 {No items} one {# item} other {# items}}",
+  "empty": "Nothing is published in English yet.",
+  "noResults": "Nothing is published in this category yet.",
+  "clearFilters": "Show all categories",
+  "videoTitle": "Video: {title}",
+  "watch": "Watch the video",
+  "watchLabel": "Watch the video: {title}",
+  "open": "Open the link",
+  "openLabel": "Open the link: {title}"
+}
