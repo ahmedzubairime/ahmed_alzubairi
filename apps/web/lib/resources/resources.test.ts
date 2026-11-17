@@ -30,7 +30,7 @@ const findPublished = vi.fn(async () => state.resource);
 const signDownload = vi.fn(async () => URL_OUT);
 const isAcceptableEmail = vi.fn(async () => state.emailOk);
 const createStore = vi.fn(() => ({ findPublished, signDownload }));
-const subscribe = vi.fn(async () => "ok");
+const subscribe = vi.fn<(email: string, locale: string) => void>();
 
 const deps: ResourceRouteDeps = {
   protect: async () => state.decision,
@@ -110,22 +110,30 @@ describe("POST /api/resources/:id/download", () => {
     expect(subscribe).not.toHaveBeenCalled();
   });
 
-  it("still gives the file when the signup fails, and logs no email", async () => {
-    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+  it("answers with the file at once, without waiting on the signup", async () => {
     state.resource = { storageKey: KEY, access: "email" };
-    subscribe.mockRejectedValueOnce(new Error(`insert failed for ${EMAIL}`));
+    let ran = false;
+    subscribe.mockImplementationOnce(() => {
+      // A signup scheduled for later; the answer must not depend on it.
+      setTimeout(() => (ran = true), 60_000);
+    });
     const response = await call({ email: EMAIL, consent: true });
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ url: URL_OUT });
-    expect(JSON.stringify(logged.mock.calls)).not.toContain(EMAIL);
-    logged.mockRestore();
+    expect(ran).toBe(false);
   });
 
-  it("signs up through the newsletter lib with source resource", async () => {
+  it("signs up through the newsletter lib with source resource, and swallows a failure", async () => {
     const { startSubscription } = await import("@/lib/newsletter/subscribe");
     vi.mocked(startSubscription).mockResolvedValueOnce("ok");
     await subscribeFromDownload(EMAIL, "en");
     expect(startSubscription).toHaveBeenCalledExactlyOnceWith({ email: EMAIL, locale: "en", source: "resource" });
+
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.mocked(startSubscription).mockRejectedValueOnce(new Error(`insert failed for ${EMAIL}`));
+    await expect(subscribeFromDownload(EMAIL, "ar")).resolves.toBeUndefined();
+    expect(JSON.stringify(logged.mock.calls)).not.toContain(EMAIL);
+    logged.mockRestore();
   });
 
   it("refuses an email Arcjet rejects, on either kind of resource", async () => {

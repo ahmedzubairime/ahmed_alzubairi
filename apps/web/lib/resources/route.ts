@@ -1,6 +1,6 @@
 import "server-only";
 import type { Locale } from "@repo/shared";
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { protectForm, validateFormEmail, type FormDecision, type FormLimit } from "@/lib/arcjet";
 import { localeFromReferer } from "@/lib/auth/paths";
 import { startSubscription } from "@/lib/newsletter/subscribe";
@@ -17,12 +17,20 @@ export type ResourceRouteDeps = {
   /** Called only once Arcjet lets the request through. */
   createStore: () => ResourceStore;
   isAcceptableEmail: (request: Request, email: string) => Promise<boolean>;
-  subscribe: (email: string, locale: Locale) => Promise<unknown>;
+  /** Returns at once; see `ResourceDownloadDeps.subscribe`. */
+  subscribe: (email: string, locale: Locale) => void;
 };
 
-/** The email gate's newsletter signup: double opt-in, source `resource` (§6.15). */
-export function subscribeFromDownload(email: string, locale: Locale) {
-  return startSubscription({ email, locale, source: "resource" });
+/**
+ * The email gate's newsletter signup: double opt-in, source `resource`
+ * (§6.15). It never throws, and it logs no address.
+ */
+export async function subscribeFromDownload(email: string, locale: Locale): Promise<void> {
+  try {
+    await startSubscription({ email, locale, source: "resource" });
+  } catch {
+    console.error("resource download: newsletter signup failed");
+  }
 }
 
 const defaultDeps: ResourceRouteDeps = {
@@ -30,7 +38,8 @@ const defaultDeps: ResourceRouteDeps = {
   createStore: () => createResourceStore(createServiceClient()),
   isAcceptableEmail: (request, email) =>
     validateFormEmail(request, email, RESOURCE_DOWNLOAD_LIMIT.route),
-  subscribe: subscribeFromDownload,
+  // After the response is sent: the visitor's file never waits on the signup.
+  subscribe: (email, locale) => after(() => subscribeFromDownload(email, locale)),
 };
 
 /**
