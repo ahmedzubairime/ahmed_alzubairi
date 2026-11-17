@@ -19,6 +19,9 @@ import { createUserClient } from "@/lib/supabase/user";
 import { literalPattern, quotedValue } from "./format";
 
 type Client = SupabaseClient<Database>;
+
+/** PostgREST's code for a range past the last row (HTTP 416). */
+const PAST_THE_END = "PGRST103";
 type RawParams = Record<string, string | string[] | undefined>;
 
 export type TrainingAccess = {
@@ -123,16 +126,28 @@ export async function loadRegistrations(
   const select = params.search
     ? "id, created_at, client_id, course_id, client:profiles!course_registrations_client_id_fkey!inner(full_name, email), course:courses!course_registrations_course_id_fkey(title_ar, title_en)"
     : "id, created_at, client_id, course_id, client:profiles!course_registrations_client_id_fkey(full_name, email), course:courses!course_registrations_course_id_fkey(title_ar, title_en)";
-  let query = client.from("course_registrations").select(select, { count: "exact" });
-  if (params.course) query = query.eq("course_id", params.course);
-  if (params.search) {
-    const value = quotedValue(literalPattern(params.search));
-    query = query.or(`full_name.imatch.${value},email.imatch.${value}`, { referencedTable: "client" });
-  }
-  const { data, error, count } = await query
+  const query = (head: boolean) => {
+    let built = client
+      .from("course_registrations")
+      .select(select, head ? { count: "exact", head: true } : { count: "exact" });
+    if (params.course) built = built.eq("course_id", params.course);
+    if (params.search) {
+      const value = quotedValue(literalPattern(params.search));
+      built = built.or(`full_name.imatch.${value},email.imatch.${value}`, { referencedTable: "client" });
+    }
+    return built;
+  };
+  const { data, error, count } = await query(false)
     .order("created_at", { ascending: false })
     .order("id")
     .range(from, to);
+  // PostgREST answers 416 for a page past the end. Return the count alone, so
+  // the page can send the reader to the last page.
+  if (error?.code === PAST_THE_END) {
+    const counted = await query(true);
+    if (counted.error) throw new Error(`course_registrations count failed: ${counted.error.code}`);
+    return { registrations: [], total: counted.count ?? 0 };
+  }
   if (error) throw new Error(`course_registrations read failed: ${error.code}`);
 
   const rows = (data as unknown as RawRegistration[]).map(
@@ -185,17 +200,24 @@ export async function loadCustomRequests(
 ): Promise<{ requests: CustomRequestRow[]; total: number }> {
   const { from, to } = pageRange(params);
   // The client's profile only to know RLS shows it, so the page links to it.
-  let query = client
-    .from("custom_training_requests")
-    .select(
-      "id, created_at, org_name, trainee_count, topic, suggested_date, place, contact_email, client:profiles!custom_training_requests_client_id_fkey(clerk_user_id)",
-      { count: "exact" },
-    );
-  if (params.search) query = query.filter("org_name", "imatch", literalPattern(params.search));
-  const { data, error, count } = await query
+  const query = (head: boolean) => {
+    const built = client
+      .from("custom_training_requests")
+      .select(
+        "id, created_at, org_name, trainee_count, topic, suggested_date, place, contact_email, client:profiles!custom_training_requests_client_id_fkey(clerk_user_id)",
+        head ? { count: "exact", head: true } : { count: "exact" },
+      );
+    return params.search ? built.filter("org_name", "imatch", literalPattern(params.search)) : built;
+  };
+  const { data, error, count } = await query(false)
     .order("created_at", { ascending: false })
     .order("id")
     .range(from, to);
+  if (error?.code === PAST_THE_END) {
+    const counted = await query(true);
+    if (counted.error) throw new Error(`custom_training_requests count failed: ${counted.error.code}`);
+    return { requests: [], total: counted.count ?? 0 };
+  }
   if (error) throw new Error(`custom_training_requests read failed: ${error.code}`);
   const requests = data.map(
     (row): CustomRequestRow => ({

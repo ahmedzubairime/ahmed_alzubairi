@@ -98,6 +98,14 @@ export function CourseForm({ course }: { course?: AdminCourse }) {
     return (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
       const value = event.target.value as CourseValues[Key];
       setValues((current) => ({ ...current, [key]: value }));
+      // An edit clears that field's error (time problems show on the date),
+      // and the "fix the marked fields" alert once none is left.
+      const field = (key === "time" ? "date" : key) as CourseField;
+      if (!errors[field]) return;
+      const rest = { ...errors };
+      delete rest[field];
+      setErrors(rest);
+      if (Object.keys(rest).length === 0) setNotice((shown) => (shown && !shown.ok ? null : shown));
     };
   }
 

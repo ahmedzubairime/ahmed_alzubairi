@@ -260,6 +260,21 @@ describe("loadRegistrations", () => {
     ]);
   });
 
+  it("answers a page past the end with the count alone, filtered the same way", async () => {
+    const fake = fakeClient((_table, calls) => {
+      const head = (calls[0][2] as { head?: boolean }).head === true;
+      return head ? { data: null, error: null, count: 3 } : { data: null, error: { code: "PGRST103" } };
+    });
+    const result = await loadRegistrations({ page: 9, pageSize: 20, course: ID, search: "sara" }, fake.client);
+    expect(result).toEqual({ registrations: [], total: 3 });
+    const [, counted] = fake.queries;
+    expect(counted.calls[0][2]).toEqual({ count: "exact", head: true });
+    expect(String(counted.calls[0][1])).toContain("!inner");
+    expect(counted.calls).toContainEqual(["eq", "course_id", ID]);
+    expect(counted.calls).toContainEqual(["or", 'full_name.imatch."sara",email.imatch."sara"', { referencedTable: "client" }]);
+    expect(counted.calls.some(([method]) => method === "range")).toBe(false);
+  });
+
   it("throws the code only on a read error", async () => {
     const fake = fakeClient(() => ({ data: null, error: { code: "42501" } }));
     await expect(loadRegistrations({ page: 1, pageSize: 20, search: undefined }, fake.client)).rejects.toThrow(
@@ -296,6 +311,28 @@ describe("loadCustomRequests", () => {
     expect(fake.queries[0].table).toBe("custom_training_requests");
     expect(calls).toContainEqual(["filter", "org_name", "imatch", "o\\.g"]);
     expect(calls).toContainEqual(["order", "created_at", { ascending: false }]);
+  });
+});
+
+describe("loadCustomRequests past the end", () => {
+  it("answers with the count alone, searched the same way", async () => {
+    const fake = fakeClient((_table, calls) =>
+      (calls[0][2] as { head?: boolean }).head === true
+        ? { data: null, error: null, count: 4 }
+        : { data: null, error: { code: "PGRST103" } },
+    );
+    expect(await loadCustomRequests({ page: 5, pageSize: 20, search: "org" }, fake.client)).toEqual({
+      requests: [],
+      total: 4,
+    });
+    expect(fake.queries[1].calls).toContainEqual(["filter", "org_name", "imatch", "org"]);
+  });
+
+  it("still throws on another error", async () => {
+    const fake = fakeClient(() => ({ data: null, error: { code: "42501" } }));
+    await expect(loadCustomRequests({ page: 1, pageSize: 20, search: undefined }, fake.client)).rejects.toThrow(
+      "custom_training_requests read failed: 42501",
+    );
   });
 });
 
@@ -494,6 +531,29 @@ describe("CourseForm", () => {
     expect(fetchMock).not.toHaveBeenCalled();
     expect(screen.getByText("Fix the marked fields, then save again.").getAttribute("role")).toBe("alert");
     expect(screen.getByText("Required.")).toBeTruthy();
+  });
+
+  it("clears a field's error and the alert once the field is edited", async () => {
+    withIntl(<CourseForm />);
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Create course" }));
+    });
+    expect(screen.getByText("Required.")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText(/Link name/), { target: { value: "a-course" } });
+    expect(screen.queryByText("Required.")).toBeNull();
+    expect(screen.queryByText("Fix the marked fields, then save again.")).toBeNull();
+  });
+
+  it("clears the date error when the time is edited", async () => {
+    withIntl(<CourseForm />);
+    fireEvent.change(screen.getByLabelText(/Link name/), { target: { value: "a-course" } });
+    fireEvent.change(screen.getByLabelText("Start date"), { target: { value: "2026-12-01" } });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Create course" }));
+    });
+    expect(screen.getByText("Enter both a date and a time.")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Start time"), { target: { value: "09:00" } });
+    expect(screen.queryByText("Enter both a date and a time.")).toBeNull();
   });
 
   it("creates a course and opens it", async () => {
