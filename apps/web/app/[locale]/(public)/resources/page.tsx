@@ -1,7 +1,7 @@
 import type { Locale } from "@repo/shared";
 import type { Metadata } from "next";
-import { hasLocale } from "next-intl";
-import { getTranslations } from "next-intl/server";
+import { hasLocale, NextIntlClientProvider } from "next-intl";
+import { getMessages, getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { PageHero } from "@/components/public/parts";
@@ -28,11 +28,19 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
  */
 async function ResourcesFromQuery({ locale, searchParams }: { locale: Locale; searchParams: Promise<SearchParams> }) {
   const query = parseResourcesQuery(await searchParams);
-  const [resources, areas] = await Promise.all([
+  const [resources, areas, messages] = await Promise.all([
     getResources(locale, { expertise: query.area ?? undefined, kind: query.kind ?? undefined }),
     getExpertiseAreas(locale),
+    getMessages({ locale }),
   ]);
-  return <ResourcesList resources={resources} areas={areas} query={query} />;
+  // The download buttons and the email gate are client components that read
+  // `Resources`; the root layout gives the browser only Header, Nav and Error.
+  // The browser gets only this namespace.
+  return (
+    <NextIntlClientProvider locale={locale} messages={{ Resources: messages.Resources }}>
+      <ResourcesList resources={resources} areas={areas} query={query} />
+    </NextIntlClientProvider>
+  );
 }
 
 function ListLoading() {
