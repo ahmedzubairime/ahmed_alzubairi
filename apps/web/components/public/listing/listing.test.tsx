@@ -333,7 +333,8 @@ describe("CourseCard", () => {
     href: "/training/c",
     title: "Course",
     description: null,
-    startsAt: "2027-01-12T06:00:00Z",
+    // Midday UTC: the same date in every zone the browser may be in.
+    startsAt: "2027-01-12T12:00:00Z",
     place: "Riyadh",
     action: <button type="button">Register</button>,
   };
