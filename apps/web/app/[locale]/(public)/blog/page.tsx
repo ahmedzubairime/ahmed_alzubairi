@@ -4,6 +4,7 @@ import { hasLocale } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { NewsletterSignup } from "@/components/newsletter";
 import { BlogList, parseBlogQuery } from "@/components/public/blog";
 import { PageHero } from "@/components/public/parts";
 import { MAIN_CONTENT_ID } from "@/components/skip-link";
@@ -57,6 +58,13 @@ export default async function Blog({ params, searchParams }: Props) {
       <Suspense fallback={<PostsLoading />}>
         <PostsFromQuery locale={locale} searchParams={searchParams} />
       </Suspense>
+      {/* §6.15: the blog is one of the three signup places. Outside the
+          Suspense, so it shows while the list loads. */}
+      <div className="border-t border-text/10 bg-surface">
+        <div className="mx-auto max-w-7xl px-4 py-12">
+          <NewsletterSignup source="blog" className="max-w-xl" />
+        </div>
+      </div>
     </main>
   );
 }

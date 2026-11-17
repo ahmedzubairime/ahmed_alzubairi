@@ -1,7 +1,9 @@
 import "server-only";
-import { NextResponse } from "next/server";
+import type { Locale } from "@repo/shared";
+import { after, NextResponse } from "next/server";
 import { protectForm, validateFormEmail, type FormDecision, type FormLimit } from "@/lib/arcjet";
 import { localeFromReferer } from "@/lib/auth/paths";
+import { startSubscription } from "@/lib/newsletter/subscribe";
 import { createServiceClient } from "@/lib/supabase/service";
 import { fail } from "./errors";
 import { downloadResource, type ResourceStore } from "./handlers";
@@ -15,13 +17,29 @@ export type ResourceRouteDeps = {
   /** Called only once Arcjet lets the request through. */
   createStore: () => ResourceStore;
   isAcceptableEmail: (request: Request, email: string) => Promise<boolean>;
+  /** Returns at once; see `ResourceDownloadDeps.subscribe`. */
+  subscribe: (email: string, locale: Locale) => void;
 };
+
+/**
+ * The email gate's newsletter signup: double opt-in, source `resource`
+ * (§6.15). It never throws, and it logs no address.
+ */
+export async function subscribeFromDownload(email: string, locale: Locale): Promise<void> {
+  try {
+    await startSubscription({ email, locale, source: "resource" });
+  } catch {
+    console.error("resource download: newsletter signup failed");
+  }
+}
 
 const defaultDeps: ResourceRouteDeps = {
   protect: (request) => protectForm(request, RESOURCE_DOWNLOAD_LIMIT),
   createStore: () => createResourceStore(createServiceClient()),
   isAcceptableEmail: (request, email) =>
     validateFormEmail(request, email, RESOURCE_DOWNLOAD_LIMIT.route),
+  // After the response is sent: the visitor's file never waits on the signup.
+  subscribe: (email, locale) => after(() => subscribeFromDownload(email, locale)),
 };
 
 /**
@@ -58,6 +76,7 @@ export async function handleResourceDownloadRequest(
               locale,
               store: deps.createStore(),
               isAcceptableEmail: (email) => deps.isAcceptableEmail(request, email),
+              subscribe: deps.subscribe,
             });
     // The body carries a short-lived URL, so nothing may cache it.
     return NextResponse.json(result.body, {

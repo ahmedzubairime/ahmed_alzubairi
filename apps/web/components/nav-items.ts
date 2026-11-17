@@ -5,14 +5,17 @@ type NavItem<Label extends string> = { href: string; label: Label };
 type NavLabel = keyof Messages["Nav"];
 type AccountLabel = keyof Messages["Account"];
 
-// Only sections with a page. Training, blog, free resources and media come
-// back when their phases build them (§6.7–§6.10).
+// Only sections with a page (nav-items.test.ts checks each one).
 export const MAIN_NAV = [
   { href: "/", label: "home" },
   { href: "/about", label: "about" },
   { href: "/expertise", label: "expertise" },
   { href: "/services", label: "services" },
   { href: "/projects", label: "projects" },
+  { href: "/training", label: "training" },
+  { href: "/blog", label: "blog" },
+  { href: "/resources", label: "resources" },
+  { href: "/media", label: "media" },
   { href: "/contact", label: "contact" },
 ] as const satisfies readonly NavItem<NavLabel>[];
 

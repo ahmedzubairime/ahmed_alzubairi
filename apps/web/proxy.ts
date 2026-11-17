@@ -12,6 +12,9 @@ import {
 } from "./lib/auth/paths";
 import { signInPath } from "./lib/auth/return-path";
 import { hasExpertiseArea, hasProject, hasService } from "./lib/content";
+// Not in the lib/content index: only the proxy needs these two checks.
+import { hasCourse } from "./lib/content/courses";
+import { hasPost } from "./lib/content/posts";
 import ar from "./messages/ar.json";
 import en from "./messages/en.json";
 
@@ -19,11 +22,13 @@ const handleLocale = createMiddleware(routing);
 const MESSAGES = { ar, en };
 
 /** The public detail pages: a language, a section, and exactly one slug. */
-const DETAIL_PAGE = new RegExp(`^/(${LOCALES.join("|")})/(services|projects|expertise)/([^/]+)$`);
+const DETAIL_PAGE = new RegExp(`^/(${LOCALES.join("|")})/(services|projects|expertise|blog|training)/([^/]+)$`);
 const DETAIL_CHECKS = {
   services: hasService,
   projects: hasProject,
   expertise: hasExpertiseArea,
+  blog: hasPost,
+  training: hasCourse,
 } as const;
 
 /**

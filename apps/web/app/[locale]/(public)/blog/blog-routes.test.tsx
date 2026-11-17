@@ -25,6 +25,9 @@ vi.mock("@/components/language-switch", () => ({
 }));
 vi.mock("@/components/public/parts", () => ({ PageHero: ({ title }: { title: string }) => <h1>{title}</h1> }));
 vi.mock("@/components/ui", () => ({ Skeleton: () => <div /> }));
+vi.mock("@/components/newsletter", () => ({
+  NewsletterSignup: ({ source }: { source: string }) => <form data-testid="newsletter" data-source={source} />,
+}));
 vi.mock("@/components/public/blog", async () => ({
   ...(await vi.importActual<typeof import("@/components/public/blog/query")>("@/components/public/blog/query")),
   BlogList: (props: unknown) => (mocks.list(props), <p>list</p>),
@@ -136,5 +139,12 @@ describe("/blog", () => {
   it("is not found for an unknown locale", async () => {
     const props = { params: Promise.resolve({ locale: "fr" }), searchParams: Promise.resolve({}) };
     await expect(list.default(props)).rejects.toThrow("NOT_FOUND");
+  });
+
+  it("has the newsletter signup, with source blog", async () => {
+    mocks.getPosts.mockResolvedValue({ items: [], total: 0, page: 1, pageCount: 0 });
+    const props = { params: Promise.resolve({ locale: "en" }), searchParams: Promise.resolve({}) };
+    render(await list.default(props));
+    expect(screen.getByTestId("newsletter").getAttribute("data-source")).toBe("blog");
   });
 });

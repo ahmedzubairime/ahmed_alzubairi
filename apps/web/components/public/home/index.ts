@@ -8,6 +8,7 @@ export { ExpertiseSection, HOME_EXPERTISE_COUNT } from "./expertise";
 export { HeroSection } from "./hero";
 export { HOME_LATEST_COUNT, LatestSection } from "./latest";
 export { MediaSection } from "./media";
+export { NewsletterSection } from "./newsletter";
 export { PartnersSection } from "./partners";
 export { HOME_PROJECT_COUNT, ProjectsSection, selectHomeProjects } from "./projects";
 export type { SectionBand } from "./section";

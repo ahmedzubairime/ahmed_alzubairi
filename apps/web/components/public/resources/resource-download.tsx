@@ -3,7 +3,7 @@
 import type { ResourceAccess } from "@repo/shared";
 import { useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
-import { Button, TextField } from "@/components/ui";
+import { Button, Checkbox, TextField } from "@/components/ui";
 import { requestDownload, startDownload } from "./api";
 
 /**
@@ -61,13 +61,16 @@ type GateState = { step: "form"; error: string | null } | { step: "sending" } | 
 
 /**
  * Asks for the email, then downloads. A native modal `<dialog>`, so focus
- * stays inside and Esc closes it. The email goes only to the download route.
+ * stays inside and Esc closes it. The email goes only to the download route,
+ * and joins the newsletter only when the visitor ticks the box.
  */
 export function EmailGateDialog({ id, title, onClose }: { id: string; title: string; onClose: () => void }) {
   const t = useTranslations("Resources");
   const dialog = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const [email, setEmail] = useState("");
+  // The newsletter box is never ticked for the visitor (§6.9, §9).
+  const [consent, setConsent] = useState(false);
   const [missing, setMissing] = useState(false);
   const [state, setState] = useState<GateState>({ step: "form", error: null });
   const busy = state.step === "sending";
@@ -93,7 +96,7 @@ export function EmailGateDialog({ id, title, onClose }: { id: string; title: str
       return;
     }
     setState({ step: "sending" });
-    const result = await requestDownload(id, address);
+    const result = await requestDownload(id, { email: address, consent });
     if (result.ok) {
       setState({ step: "done" });
       startDownload(result.url);
@@ -147,6 +150,14 @@ export function EmailGateDialog({ id, title, onClose }: { id: string; title: str
               dir="ltr"
               required
               autoFocus
+            />
+            <Checkbox
+              className="mt-4"
+              name="newsletter"
+              label={t("newsletterConsent")}
+              hint={t("newsletterConsentHint")}
+              checked={consent}
+              onChange={(event) => setConsent(event.target.checked)}
             />
           </fieldset>
           {state.step === "form" && state.error && (

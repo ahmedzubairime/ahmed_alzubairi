@@ -17,9 +17,11 @@
   "startedText": "If the file doesn't arrive, close this window and try again.",
   "failed": "The download didn't start. Check your connection and try again.",
   "gateTitle": "Enter your email to download",
-  "gateIntro": "This resource is sent in exchange for your email address. We use it for this download only.",
+  "gateIntro": "This resource is sent in exchange for your email address. We use it for this download only, unless you tick the box below.",
   "email": "Email",
   "emailRequired": "Enter your email address.",
+  "newsletterConsent": "Also send me the newsletter",
+  "newsletterConsentHint": "We'll email you a link to confirm first. Nothing is sent before you confirm, and you can unsubscribe at any time.",
   "gateSubmit": "Download",
   "cancel": "Cancel",
   "close": "Close"

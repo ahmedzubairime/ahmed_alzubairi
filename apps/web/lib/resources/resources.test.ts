@@ -4,8 +4,9 @@ import type { FormDecision } from "@/lib/arcjet";
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/arcjet", () => ({ protectForm: vi.fn(), validateFormEmail: vi.fn() }));
 vi.mock("@/lib/supabase/service", () => ({ createServiceClient: vi.fn() }));
+vi.mock("@/lib/newsletter/subscribe", () => ({ startSubscription: vi.fn() }));
 
-const { handleResourceDownloadRequest } = await import("./route");
+const { handleResourceDownloadRequest, subscribeFromDownload } = await import("./route");
 const { createResourceStore } = await import("./store");
 import type { DownloadableResource } from "./handlers";
 import type { ResourceRouteDeps } from "./route";
@@ -29,11 +30,13 @@ const findPublished = vi.fn(async () => state.resource);
 const signDownload = vi.fn(async () => URL_OUT);
 const isAcceptableEmail = vi.fn(async () => state.emailOk);
 const createStore = vi.fn(() => ({ findPublished, signDownload }));
+const subscribe = vi.fn<(email: string, locale: string) => void>();
 
 const deps: ResourceRouteDeps = {
   protect: async () => state.decision,
   createStore,
   isAcceptableEmail,
+  subscribe,
 };
 
 function call(body?: unknown, id = ID, referer = "https://site.example/en/resources") {
@@ -81,6 +84,56 @@ describe("POST /api/resources/:id/download", () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ url: URL_OUT });
     expect(isAcceptableEmail).toHaveBeenCalledWith(expect.any(Request), EMAIL);
+  });
+
+  it("starts the newsletter opt-in only with explicit consent, in the page's language", async () => {
+    state.resource = { storageKey: KEY, access: "email" };
+    await call({ email: EMAIL, consent: true }, ID, "https://site.example/ar/resources");
+    expect(subscribe).toHaveBeenCalledExactlyOnceWith(EMAIL, "ar");
+
+    subscribe.mockClear();
+    for (const body of [{ email: EMAIL }, { email: EMAIL, consent: false }]) {
+      expect((await call(body)).status).toBe(200);
+    }
+    expect(subscribe).not.toHaveBeenCalled();
+  });
+
+  it("never subscribes an email it refuses, or for a resource that isn't there", async () => {
+    state.resource = { storageKey: KEY, access: "email" };
+    state.emailOk = false;
+    expect((await call({ email: EMAIL, consent: true })).status).toBe(400);
+    state.emailOk = true;
+    state.resource = null;
+    expect((await call({ email: EMAIL, consent: true })).status).toBe(404);
+    state.decision = "rate_limited";
+    expect((await call({ email: EMAIL, consent: true })).status).toBe(429);
+    expect(subscribe).not.toHaveBeenCalled();
+  });
+
+  it("answers with the file at once, without waiting on the signup", async () => {
+    state.resource = { storageKey: KEY, access: "email" };
+    let ran = false;
+    subscribe.mockImplementationOnce(() => {
+      // A signup scheduled for later; the answer must not depend on it.
+      setTimeout(() => (ran = true), 60_000);
+    });
+    const response = await call({ email: EMAIL, consent: true });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ url: URL_OUT });
+    expect(ran).toBe(false);
+  });
+
+  it("signs up through the newsletter lib with source resource, and swallows a failure", async () => {
+    const { startSubscription } = await import("@/lib/newsletter/subscribe");
+    vi.mocked(startSubscription).mockResolvedValueOnce("ok");
+    await subscribeFromDownload(EMAIL, "en");
+    expect(startSubscription).toHaveBeenCalledExactlyOnceWith({ email: EMAIL, locale: "en", source: "resource" });
+
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.mocked(startSubscription).mockRejectedValueOnce(new Error(`insert failed for ${EMAIL}`));
+    await expect(subscribeFromDownload(EMAIL, "ar")).resolves.toBeUndefined();
+    expect(JSON.stringify(logged.mock.calls)).not.toContain(EMAIL);
+    logged.mockRestore();
   });
 
   it("refuses an email Arcjet rejects, on either kind of resource", async () => {

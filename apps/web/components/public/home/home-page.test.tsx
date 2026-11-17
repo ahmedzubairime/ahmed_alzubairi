@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { HomeSection } from "@/lib/content";
@@ -48,6 +48,8 @@ vi.mock("@/lib/content", () => {
 vi.mock("next-intl", async (original) => ({
   ...(await original<typeof import("next-intl")>()),
   useTranslations: () => (key: string) => key,
+  // The newsletter form, a client component, reads the page's language.
+  useLocale: () => "en",
 }));
 vi.mock("next/navigation", () => ({
   notFound: () => {
@@ -116,13 +118,19 @@ describe("home page", () => {
     expect(shownSections()).toEqual(["contact", "hero", "partners", "expertise"]);
   });
 
-  it("never shows the newsletter section yet", async () => {
+  it("shows the newsletter signup under the dashboard's heading, with source home", async () => {
     content.sections = [section("hero", 1), section("newsletter", 2), section("contact", 3)];
     await renderPage();
-    expect(shownSections()).toEqual(["hero", "contact"]);
+    expect(shownSections()).toEqual(["hero", "newsletter", "contact"]);
+    const block = document.querySelector('main [data-section="newsletter"]') as HTMLElement;
+    expect(within(block).getByRole("heading", { level: 2, name: "newsletter heading" })).toBeTruthy();
+    expect(within(block).getByLabelText("email")).toBeTruthy();
+    expect(within(block).getByRole("button", { name: "subscribe" })).toBeTruthy();
+    // The newsletter needs no read of its own.
+    expect(content.calls).toEqual(["sections", "settings"]);
   });
 
-  it("never reads or shows media and latest, whose pages come in Phase 5", async () => {
+  it("shows every section with seed-like data, media and latest included", async () => {
     // Seed-like data: every section is visible and media, posts and resources exist.
     content.sections = [
       "hero",
@@ -180,16 +188,22 @@ describe("home page", () => {
         "projects",
         "partners",
         "testimonials",
+        "media",
+        "latest",
+        "newsletter",
         "contact",
       ]);
       const hrefs = [...document.querySelectorAll("a[href]")].map((link) => link.getAttribute("href") ?? "");
-      expect(hrefs.length).toBeGreaterThan(0);
-      expect(hrefs.filter((href) => /(^|\/)(media|blog|resources)(\/|$)/.test(href))).toEqual([]);
-      expect(content.calls).not.toContain("media");
-      expect(content.calls).not.toContain("posts");
-      expect(content.calls).not.toContain("resources");
+      expect(hrefs).toEqual(expect.arrayContaining(["/media", "/blog", "/blog/example-article", "/resources"]));
+      expect(content.calls).toEqual(expect.arrayContaining(["media", "posts", "resources"]));
       cleanup();
     }
+  });
+
+  it("leaves out media and latest when there is nothing to show", async () => {
+    content.sections = [section("media", 1), section("latest", 2)];
+    await renderPage();
+    expect(shownSections()).toEqual([]);
   });
 
   it("leaves out a list section with no rows, and stats with no values", async () => {
@@ -217,7 +231,7 @@ describe("home page", () => {
     content.sections = [
       section("hero", 1),
       section("expertise", 2),
-      section("media", 3), // left out: waits for its Phase 5 page
+      section("media", 3), // left out: no media item
       section("partners", 4),
       section("testimonials", 5),
       section("contact", 6),
