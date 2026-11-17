@@ -22,6 +22,12 @@ export type ResourceDownloadDeps = {
   store: ResourceStore;
   /** False when the address is disposable, invalid or has no mail server. */
   isAcceptableEmail: (email: string) => Promise<boolean>;
+  /**
+   * Starts the newsletter's double opt-in for this address (§6.15): a
+   * `pending` row and the confirm email, nothing else. Called only with
+   * explicit consent.
+   */
+  subscribe: (email: string, locale: Locale) => Promise<unknown>;
 };
 
 /**
@@ -37,7 +43,7 @@ export async function downloadResource(
   if (!uuidSchema.safeParse(id).success) return fail("notFound", locale);
   const parsed = resourceDownloadRequestSchema.safeParse(body);
   if (!parsed.success) return fail("invalid", locale);
-  const { email } = parsed.data;
+  const { email, consent } = parsed.data;
 
   const resource = await store.findPublished(id);
   if (!resource) return fail("notFound", locale);
@@ -47,9 +53,14 @@ export async function downloadResource(
     return fail("emailInvalid", locale);
   }
 
-  // Nothing about the email is stored yet, and `consent` is accepted and
-  // ignored: the wire-up task starts the newsletter double opt-in from it here,
-  // once the newsletter lib is merged.
+  // The email joins the newsletter only with explicit consent (§6.9). The
+  // download never waits on it failing: a signup that fails is logged by the
+  // newsletter lib, and the visitor still gets the file.
+  if (consent === true && email !== undefined) {
+    await deps.subscribe(email, locale).catch(() => {
+      console.error("resource download: newsletter signup failed");
+    });
+  }
 
   return { status: 200, body: { url: await store.signDownload(resource.storageKey) } };
 }

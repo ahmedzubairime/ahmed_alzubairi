@@ -118,10 +118,12 @@ describe("requestDownload", () => {
     expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ method: "POST", body: "{}" });
   });
 
-  it("sends the email when given, and never a consent flag", async () => {
+  it("sends the email, and the consent flag only when the box is ticked", async () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(reply(200, { url: URL_OK }));
-    await requestDownload(ID, "a@example.com", fetchMock);
+    await requestDownload(ID, { email: "a@example.com", consent: false }, fetchMock);
     expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({ email: "a@example.com" });
+    await requestDownload(ID, { email: "a@example.com", consent: true }, fetchMock);
+    expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body))).toEqual({ email: "a@example.com", consent: true });
   });
 
   it("returns the server's code and message on a refusal", async () => {
@@ -207,6 +209,32 @@ describe("ResourceDownload", () => {
     await waitFor(() => expect(startDownload).toHaveBeenCalledWith(URL_OK));
     expect(sentBody(fetchMock, 1)).toEqual({ email: "good@example.com" });
     expect(dialog.getByText("started")).toBeTruthy();
+  });
+
+  it("has the newsletter box unticked, and sends consent only once it's ticked", async () => {
+    const fetchMock = stubFetch(reply(200, { url: URL_OK }));
+    render(<ResourceDownload id={ID} title="Board guide" access="email" />);
+    fireEvent.click(screen.getByRole("button", { name: /^downloadByEmailLabel/ }));
+    const dialog = within(screen.getByRole("dialog", { hidden: true }));
+    const box = dialog.getByRole("checkbox", { name: "newsletterConsent", hidden: true }) as HTMLInputElement;
+    expect(box.checked).toBe(false);
+    expect(box.getAttribute("aria-describedby")).toBeTruthy();
+
+    fireEvent.click(box);
+    expect(box.checked).toBe(true);
+    fireEvent.change(dialog.getByLabelText("email"), { target: { value: "good@example.com" } });
+    fireEvent.click(dialog.getByRole("button", { name: "gateSubmit", hidden: true }));
+    await waitFor(() => expect(startDownload).toHaveBeenCalledWith(URL_OK));
+    expect(sentBody(fetchMock)).toEqual({ email: "good@example.com", consent: true });
+  });
+
+  it("states the consent in both languages, with the double opt-in", () => {
+    for (const messages of [ar, en]) {
+      expect(messages.newsletterConsent).toBeTruthy();
+      expect(messages.newsletterConsentHint).toBeTruthy();
+    }
+    expect(en.newsletterConsentHint).toMatch(/confirm/);
+    expect(ar.newsletterConsentHint).toMatch(/تأكيد/);
   });
 
   it("opens the email dialog when a resource became email-gated after the page was cached", async () => {

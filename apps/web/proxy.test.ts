@@ -26,8 +26,9 @@ const lookup = vi.hoisted(() => ({
   signals: [] as AbortSignal[],
 }));
 
-vi.mock("./lib/content", () => {
-  const check = (type: string) => async (slug: string, locale: string, signal?: AbortSignal) => {
+/** A `has*` check for one detail type, answering from `lookup`. */
+const check = vi.hoisted(
+  () => (type: string) => async (slug: string, locale: string, signal?: AbortSignal) => {
     const key = `${type}/${locale}/${slug}`;
     lookup.calls.push(key);
     if (signal) lookup.signals.push(signal);
@@ -40,13 +41,16 @@ vi.mock("./lib/content", () => {
     }
     if (lookup.fails) throw new Error("NEXT_PUBLIC_SUPABASE_URL is not set.");
     return lookup.public.has(key);
-  };
-  return {
-    hasService: check("services"),
-    hasProject: check("projects"),
-    hasExpertiseArea: check("expertise"),
-  };
-});
+  },
+);
+
+vi.mock("./lib/content", () => ({
+  hasService: check("services"),
+  hasProject: check("projects"),
+  hasExpertiseArea: check("expertise"),
+}));
+vi.mock("./lib/content/posts", () => ({ hasPost: check("blog") }));
+vi.mock("./lib/content/courses", () => ({ hasCourse: check("training") }));
 
 const { default: proxy, DETAIL_LOOKUP_TIMEOUT_MS } = await import("./proxy");
 
@@ -68,6 +72,9 @@ beforeEach(() => {
     "projects/ar/school-program",
     "expertise/en/governance",
     "services/ar/حوكمة",
+    "blog/en/first-article",
+    "blog/ar/مقال-أول",
+    "training/en/governance-basics",
   ]);
   lookup.fails = false;
   lookup.hangs = false;
@@ -168,6 +175,12 @@ describe("detail pages", () => {
     ["/ar/projects/no-such-project", "ar"],
     ["/en/expertise/no-such-area", "en"],
     ["/ar/expertise/no-such-area", "ar"],
+    ["/en/blog/unknown", "en"],
+    ["/ar/blog/unknown", "ar"],
+    ["/en/training/unknown", "en"],
+    ["/ar/training/unknown", "ar"],
+    // A course published only in English.
+    ["/ar/training/governance-basics", "ar"],
   ])("sends a missing or unpublished %s to the not-found page", async (path, locale) => {
     const response = await request(path);
     // The page it rewrites to sets the 404. A status set here would make
@@ -191,6 +204,8 @@ describe("detail pages", () => {
     "/en/services/english-only",
     "/ar/projects/school-program",
     "/en/expertise/governance",
+    "/en/blog/first-article",
+    "/en/training/governance-basics",
   ])("serves the published %s as it is", async (path) => {
     const response = await request(path);
     expect(response.status).toBe(200);
@@ -203,10 +218,18 @@ describe("detail pages", () => {
     expect(lookup.calls).toEqual(["services/ar/حوكمة"]);
   });
 
+  it("looks up an Arabic article slug decoded", async () => {
+    const response = await request(`/ar/blog/${encodeURIComponent("مقال-أول")}`);
+    expect(rewrittenTo(response)).toBeNull();
+    expect(lookup.calls).toEqual(["blog/ar/مقال-أول"]);
+  });
+
   it.each([
     "/en/services",
     "/ar/projects",
     "/en/expertise",
+    "/en/blog",
+    "/ar/training",
     "/en",
     "/en/about",
     "/en/no-such-page",

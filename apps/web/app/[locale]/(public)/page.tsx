@@ -11,6 +11,7 @@ import {
   HOME_LATEST_COUNT,
   LatestSection,
   MediaSection,
+  NewsletterSection,
   PartnersSection,
   ProjectsSection,
   ServicesSection,
@@ -34,18 +35,6 @@ import {
   getTestimonials,
   type HomeSection,
 } from "@/lib/content";
-
-/**
- * Sections waiting for their Phase 5 pages (docs/plan.md, Phase 5). The home
- * page neither reads nor renders them, whatever their visibility or content,
- * so it never links to a page that 404s. Phase 5 deletes each line as the
- * page ships; the section components stay ready for it.
- */
-const WAITING_FOR_PAGES: readonly HomeSectionKey[] = [
-  "newsletter", // §6.15 newsletter signup
-  "media", // §6.10: links to /media
-  "latest", // §6.8–6.9: links to /blog and /resources
-];
 
 const none = Promise.resolve([]);
 
@@ -141,7 +130,7 @@ function plan(section: HomeSection, data: SectionData, locale: Locale): Planned 
         />
       ));
     case "newsletter":
-      return null;
+      return banded((band) => <NewsletterSection {...section.content} band={band} />);
     case "contact": {
       const { settings } = data;
       if (!settings) return null;
@@ -160,9 +149,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   if (!hasLocale(routing.locales, locale)) notFound();
   await connection();
 
-  const sections = (await getHomeSections(locale)).filter(
-    (section) => !WAITING_FOR_PAGES.includes(section.key),
-  );
+  const sections = await getHomeSections(locale);
   const data = await loadSectionData(locale, new Set(sections.map((section) => section.key)));
   const planned = sections.flatMap((section) => plan(section, data, locale) ?? []);
 

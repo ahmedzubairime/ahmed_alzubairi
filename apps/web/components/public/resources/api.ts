@@ -8,16 +8,20 @@ export type DownloadResult =
 /** How long a download request may take before the visitor gets the form back. */
 export const DOWNLOAD_TIMEOUT_MS = 15_000;
 
+/** What the email gate sends. `consent` is the newsletter box, unticked by default. */
+export type DownloadGate = { email: string; consent: boolean };
+
 /**
  * `POST /api/resources/:id/download`. A direct resource needs no email; an
- * email-gated one is refused with `validation_failed` without it. The answer is a
+ * email-gated one is refused with `validation_failed` without it. `consent`
+ * goes on the wire only when the visitor ticked the newsletter box (§6.9). The answer is a
  * signed URL that lasts 60 seconds, so it's followed at once and never kept.
  * A request that takes longer than `timeoutMs` is aborted and reported as a
  * failure, so no late answer can start a download.
  */
 export async function requestDownload(
   id: string,
-  email?: string,
+  gate?: DownloadGate,
   fetchImpl: typeof fetch = fetch,
   timeoutMs: number = DOWNLOAD_TIMEOUT_MS,
 ): Promise<DownloadResult> {
@@ -29,7 +33,7 @@ export async function requestDownload(
     response = await fetchImpl(`/api/resources/${encodeURIComponent(id)}/download`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify(email === undefined ? {} : { email }),
+      body: JSON.stringify(gate === undefined ? {} : gate.consent ? { email: gate.email, consent: true } : { email: gate.email }),
       cache: "no-store",
       signal: controller.signal,
     });
