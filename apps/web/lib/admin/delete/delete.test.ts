@@ -1,4 +1,4 @@
-import { ADMIN_DELETE_TYPES, PERMISSIONS, type AdminDeleteType, type Permission } from "@repo/shared";
+import { ADMIN_DELETE_TYPES, COURSES_CACHE_TAG, PERMISSIONS, type AdminDeleteType, type Permission } from "@repo/shared";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AuditEntry } from "@/lib/admin/audit";
 import type { PermissionDeps } from "@/lib/admin/permissions";
@@ -233,12 +233,19 @@ describe("deleteRecord", () => {
     expect(w.removed).toEqual([{ bucket: "attachments", key: "k" }]);
   });
 
+  it("refreshes the public course cache when a course is deleted", async () => {
+    const w = world();
+    add(w, "courses", ID);
+    expect((await remove(w, "courses")).status).toBe(200);
+    expect(w.tags).toEqual([COURSES_CACHE_TAG]);
+  });
+
   it("covers every shared type with a tag rule", async () => {
     for (const type of ADMIN_DELETE_TYPES) {
       const w = world();
       add(w, type, ID);
       expect((await remove(w, type)).status, type).toBe(200);
-      const expected = type === "consultations" || type === "courses" ? [] : [type === "documents" ? "content:documents" : `content:${type}`];
+      const expected = type === "consultations" ? [] : [type === "documents" ? "content:documents" : `content:${type}`];
       expect(w.tags, type).toEqual(expected);
     }
   });

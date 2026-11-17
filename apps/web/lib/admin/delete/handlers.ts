@@ -2,6 +2,7 @@ import {
   adminDeleteRequestSchema,
   adminDeleteTypeSchema,
   contentCacheTag,
+  COURSES_CACHE_TAG,
   DOCUMENTS_CACHE_TAG,
   isDeleteConfirmed,
   uuidSchema,
@@ -65,7 +66,9 @@ function fail(code: ErrorCode, status: number, key: MessageKey, locale: Locale):
 /** The cache tag a deleted row may sit under, when it has one. */
 function cacheTagOf(type: AdminDeleteType): string | null {
   if (type === "documents") return DOCUMENTS_CACHE_TAG;
-  if (type === "consultations" || type === "courses") return null;
+  // A deleted published course must leave /training and its page at once.
+  if (type === "courses") return COURSES_CACHE_TAG;
+  if (type === "consultations") return null;
   return contentCacheTag(type satisfies ContentType);
 }
 

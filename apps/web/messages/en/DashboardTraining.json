@@ -1,0 +1,184 @@
+{
+  "title": "Training",
+  "intro": "Courses, the clients registered in them, and requests for custom training.",
+  "add": "Add a course",
+  "count": "{total, plural, =0 {No courses} one {# course} other {# courses}}",
+  "empty": {
+    "title": "No courses yet",
+    "text": "Add a course to start. It stays a draft until you publish it."
+  },
+  "nav": {
+    "label": "Training sections",
+    "courses": "Courses",
+    "registrations": "Registrations",
+    "requests": "Custom training requests"
+  },
+  "paging": {
+    "label": "Pages",
+    "previous": "Previous",
+    "next": "Next",
+    "position": "Page {page} of {pages}"
+  },
+  "filters": {
+    "label": "Filter the list",
+    "search": "Search",
+    "apply": "Apply",
+    "clear": "Clear",
+    "allCourses": "All courses"
+  },
+  "status": {
+    "draft": "Draft",
+    "published": "Published"
+  },
+  "types": {
+    "in_person": "In person",
+    "online_live": "Live online",
+    "recorded": "Recorded",
+    "custom": "Custom training"
+  },
+  "list": {
+    "noTitle": "Untitled course",
+    "edit": "Edit {title}",
+    "otherTitle": "Title in the other language",
+    "type": "Type",
+    "date": "Date",
+    "noDate": "Not set",
+    "noDateRecorded": "None (recorded)",
+    "seats": "Seats",
+    "seatsTaken": "{taken} of {total} taken",
+    "registered": "{count, plural, =0 {No limit, none registered} one {No limit, # registered} other {No limit, # registered}}",
+    "registrations": "{count, plural, =0 {No registrations} one {# registration} other {# registrations}}",
+    "registrationsLabel": "Registrations for {title}"
+  },
+  "detail": {
+    "back": "All courses",
+    "newTitle": "New course",
+    "newIntro": "Fill in Arabic, English or both. A course shows on the site only in the languages it has a title and a description in.",
+    "edit": "Course details"
+  },
+  "form": {
+    "languages": "Language",
+    "hasErrors": "has errors",
+    "locales": {
+      "ar": "العربية",
+      "en": "English"
+    },
+    "title": "Title",
+    "description": "Description",
+    "audience": "Who it is for",
+    "audienceHint": "Optional.",
+    "place": "Place",
+    "slug": "Link name (slug)",
+    "slugHint": "Letters and numbers joined by hyphens, such as project-management.",
+    "type": "Type",
+    "status": "Status",
+    "statusHint": "A draft is never shown on the site.",
+    "recordedNote": "Recorded courses show with a \"Coming soon\" badge only: no date, seats or registration this release.",
+    "date": "Start date",
+    "dateHint": "Needed to publish. Entered in your time zone.",
+    "dateOptional": "Optional. Entered in your time zone.",
+    "time": "Start time",
+    "onlineUrl": "Session link",
+    "onlineUrlHint": "An https link. Only registered trainees see it.",
+    "seats": "Seats",
+    "seatsHint": "Leave empty for no limit.",
+    "seatsHintTaken": "{count, plural, one {# person has already registered, so it can't go lower.} other {# people have already registered, so it can't go lower.}}",
+    "save": "Save changes",
+    "create": "Create course",
+    "saving": "Saving…",
+    "creating": "Creating…",
+    "saved": "Saved.",
+    "unchanged": "Nothing changed.",
+    "failed": "Not saved. Try again.",
+    "fixErrors": "Fix the marked fields, then save again.",
+    "errors": {
+      "required": "Required.",
+      "slug": "Use letters and numbers joined by single hyphens.",
+      "dateTime": "Enter both a date and a time.",
+      "https": "Enter a link that starts with https://.",
+      "seats": "Enter a whole number above zero.",
+      "seatsBelow": "{count, plural, one {Can't be below the # person already registered.} other {Can't be below the # people already registered.}}",
+      "publishText": "To publish, fill in a title and a description in at least one language.",
+      "publishDate": "To publish this type, set a start date and time."
+    }
+  },
+  "publish": {
+    "publish": "Publish",
+    "unpublish": "Unpublish",
+    "publishLabel": "Publish {title}",
+    "unpublishLabel": "Unpublish {title}",
+    "working": "Saving…",
+    "published": "Published.",
+    "unpublished": "Back to draft.",
+    "failed": "Not saved. Try again."
+  },
+  "delete": {
+    "button": "Delete course",
+    "title": "Delete this course?",
+    "question": "{count, plural, =0 {Delete \"{title}\"? It leaves the site at once. This can't be undone.} one {Delete \"{title}\" and its # registration? It leaves the site at once. This can't be undone.} other {Delete \"{title}\" and its # registrations? It leaves the site at once. This can't be undone.}}",
+    "word": "DELETE",
+    "confirm": "Delete for good",
+    "failed": "Not deleted. Try again.",
+    "busy": "Deleting…"
+  },
+  "preview": {
+    "heading": "Preview",
+    "intro": "Your unsaved changes, drawn as the public site shows them. Nothing is saved or published from here.",
+    "show": "Show preview",
+    "hide": "Hide preview",
+    "view": "Show",
+    "views": {
+      "page": "Course page",
+      "card": "Card on Training"
+    },
+    "language": "Language",
+    "languages": {
+      "ar": "العربية",
+      "en": "English"
+    },
+    "theme": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "width": "Width",
+    "widths": {
+      "mobile": "Phone ({pixels} px)",
+      "desktop": "Desktop ({pixels} px)"
+    },
+    "frameTitle": "Preview of the public page in {language}",
+    "loading": "Loading the preview…",
+    "loadFailed": "The preview didn't load. Close it and open it again.",
+    "draftNote": "Draft: visitors don't see it until it's published.",
+    "incomplete": "No title or description in {language}, so the site won't show it in that language."
+  },
+  "registrations": {
+    "title": "Registrations",
+    "courseTitle": "Registrations: {title}",
+    "intro": "Clients registered in courses, newest first.",
+    "searchHint": "Name or email.",
+    "course": "Course",
+    "count": "{total, plural, =0 {No registrations} one {# registration} other {# registrations}}",
+    "empty": "No registrations yet.",
+    "emptyFiltered": "No registrations match this filter.",
+    "unknownClient": "Client not shown",
+    "noTitle": "Untitled course",
+    "openClient": "Open {name}'s client page",
+    "date": "Registered",
+    "email": "Email"
+  },
+  "requests": {
+    "title": "Custom training requests",
+    "intro": "Requests from organizations for training made for them, newest first.",
+    "searchHint": "Organization name.",
+    "count": "{total, plural, =0 {No requests} one {# request} other {# requests}}",
+    "empty": "No custom training requests yet.",
+    "emptyFiltered": "No requests match this search.",
+    "received": "Received",
+    "topic": "Topic",
+    "trainees": "Trainees",
+    "suggestedDate": "Suggested date",
+    "place": "Place",
+    "noPlace": "Not given",
+    "email": "Email",
+    "openClient": "Open the sender's client page"
+  }
+}
