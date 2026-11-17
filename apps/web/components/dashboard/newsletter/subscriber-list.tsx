@@ -42,7 +42,7 @@ export function SubscriberList({ subscribers }: { subscribers: NewsletterSubscri
         <li key={subscriber.id} className="p-4">
           <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
             {/* An address reads left to right in both languages, and may be long. */}
-            <p className="min-w-0 font-semibold break-all text-text">
+            <p className="min-w-0 font-semibold text-text wrap-anywhere">
               <span className="sr-only">{t("row.email")}: </span>
               <bdi dir="ltr">{subscriber.email}</bdi>
             </p>

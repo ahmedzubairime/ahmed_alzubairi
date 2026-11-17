@@ -31,7 +31,7 @@ export function CourseList({ courses, locale }: { courses: AdminCourse[]; locale
                     aria-label={t("list.edit", { title })}
                     className="hover:underline"
                   >
-                    {title}
+                    <bdi>{title}</bdi>
                   </Link>
                 </h2>
                 {showOther && (

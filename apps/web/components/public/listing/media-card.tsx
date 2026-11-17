@@ -62,7 +62,8 @@ export function MediaCard({
   return (
     <article className={cx(LISTING_CARD, className)}>
       {media ? (
-        <div className="p-2 pb-0">{media}</div>
+        // Edge to edge like a cover, with the same gold line under it (§13).
+        <div className="shrink-0 border-b-2 border-accent [&>*]:rounded-none">{media}</div>
       ) : (
         <CardCover image={image} fallback={<PlayIcon className="size-10" />} />
       )}

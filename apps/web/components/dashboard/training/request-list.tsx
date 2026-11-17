@@ -38,7 +38,7 @@ export function RequestList({ requests, locale }: { requests: CustomRequestRow[]
             <span className="sr-only">{t("topic")}: </span>
             <bdi>{row.topic}</bdi>
           </p>
-          <dl className="grid gap-x-6 gap-y-1 text-sm text-text-secondary sm:grid-cols-2 xl:grid-cols-4">
+          <dl className="grid gap-x-6 gap-y-1 text-sm text-text-secondary sm:grid-cols-2 xl:grid-cols-[auto_auto_minmax(0,1fr)_minmax(0,1.5fr)]">
             <div className="flex flex-wrap gap-x-1">
               <dt>{t("trainees")}:</dt>
               <dd className="text-text">{format.number(row.traineeCount)}</dd>
@@ -53,7 +53,7 @@ export function RequestList({ requests, locale }: { requests: CustomRequestRow[]
             </div>
             <div className="flex min-w-0 flex-wrap gap-x-1">
               <dt>{t("email")}:</dt>
-              <dd className="min-w-0 break-all text-text">
+              <dd className="min-w-0 text-text wrap-anywhere">
                 <bdi dir="ltr">{row.contactEmail}</bdi>
               </dd>
             </div>
