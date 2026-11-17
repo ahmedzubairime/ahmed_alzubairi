@@ -12,10 +12,10 @@ describe("dashboard menu", () => {
       PERMISSIONS.CONTENT_MANAGE,
       PERMISSIONS.TESTIMONIALS_APPROVE,
       PERMISSIONS.MESSAGES_VIEW,
+      PERMISSIONS.TRAINING_MANAGE,
       PERMISSIONS.CONSULTATIONS_VIEW_ALL,
       PERMISSIONS.CONSULTATIONS_REPLY,
       PERMISSIONS.CLIENTS_VIEW_ALL,
-      PERMISSIONS.TRAINING_MANAGE,
       PERMISSIONS.DOCUMENT_REQUESTS_RECOMMEND,
       PERMISSIONS.DOCUMENTS_MANAGE,
       PERMISSIONS.TEAM_MANAGE,
@@ -62,12 +62,53 @@ describe("dashboard menu", () => {
     ]);
   });
 
-  it.each([PERMISSIONS.CLIENTS_VIEW_ALL, PERMISSIONS.TRAINING_MANAGE])(
-    "shows Clients with %s alone",
-    (key) => {
-      expect(visibleSections(new Set([key])).map((s) => s.key)).toEqual(["home", "clients"]);
-    },
-  );
+  it("shows Clients with clients.view_all alone", () => {
+    expect(visibleSections(new Set([PERMISSIONS.CLIENTS_VIEW_ALL])).map((s) => s.key)).toEqual([
+      "home",
+      "clients",
+    ]);
+  });
+
+  it("shows Training and Clients with training.manage alone", () => {
+    expect(visibleSections(new Set([PERMISSIONS.TRAINING_MANAGE])).map((s) => s.key)).toEqual([
+      "home",
+      "training",
+      "clients",
+    ]);
+  });
+
+  it("shows Training only with training.manage", () => {
+    const section = DASHBOARD_SECTIONS.find((item) => item.key === "training");
+    expect(section).toMatchObject({
+      href: "/dashboard/training",
+      permission: PERMISSIONS.TRAINING_MANAGE,
+    });
+    const others = Object.values(PERMISSIONS).filter((key) => key !== PERMISSIONS.TRAINING_MANAGE);
+    expect(visibleSections(new Set<Permission>(others)).map((s) => s.key)).not.toContain("training");
+  });
+
+  it("shows a training coordinator Training but not Newsletter (§5)", () => {
+    const coordinator = new Set<Permission>([
+      PERMISSIONS.DOCUMENT_REQUESTS_RECOMMEND,
+      PERMISSIONS.DOCUMENTS_VIEW,
+      PERMISSIONS.TRAINING_MANAGE,
+    ]);
+    const keys = visibleSections(coordinator).map((s) => s.key);
+    expect(keys).toContain("training");
+    expect(keys).not.toContain("newsletter");
+  });
+
+  it("shows an assistant consultant neither Training nor Newsletter (§5)", () => {
+    const assistant = new Set<Permission>([
+      PERMISSIONS.CONSULTATIONS_REPLY,
+      PERMISSIONS.DOCUMENT_REQUESTS_RECOMMEND,
+      PERMISSIONS.DOCUMENTS_VIEW,
+      PERMISSIONS.MESSAGES_VIEW,
+    ]);
+    const keys = visibleSections(assistant).map((s) => s.key);
+    expect(keys).not.toContain("training");
+    expect(keys).not.toContain("newsletter");
+  });
 
   it("shows Consultations and Clients to an assistant with consultations.reply alone", () => {
     expect(visibleSections(new Set([PERMISSIONS.CONSULTATIONS_REPLY])).map((s) => s.key)).toEqual([
@@ -149,6 +190,7 @@ describe("dashboard menu", () => {
         PERMISSIONS.MESSAGES_VIEW,
         PERMISSIONS.CONSULTATIONS_VIEW_ALL,
         PERMISSIONS.CLIENTS_VIEW_ALL,
+        PERMISSIONS.TRAINING_MANAGE,
         PERMISSIONS.DOCUMENT_REQUESTS_RECOMMEND,
         PERMISSIONS.DOCUMENTS_MANAGE,
         PERMISSIONS.TEAM_MANAGE,
@@ -160,6 +202,7 @@ describe("dashboard menu", () => {
       "testimonials",
       "messages",
       "newsletter",
+      "training",
       "consultations",
       "clients",
       "documentRequests",
