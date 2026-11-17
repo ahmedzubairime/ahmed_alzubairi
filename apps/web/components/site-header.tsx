@@ -110,18 +110,23 @@ export function SiteHeader() {
 
   return (
     <header className="relative z-40 border-b border-text/10 bg-surface">
-      <div className="mx-auto flex min-h-16 max-w-7xl flex-wrap items-center gap-x-2 gap-y-3 px-4 py-3">
+      {/*
+        The inline nav needs about 1,540 px in English (ten links, the button
+        and the switches), so it shows from 2xl, where the row may grow to the
+        full 2xl width. Below that, the menu button holds the links.
+      */}
+      <div className="mx-auto flex min-h-16 max-w-7xl flex-wrap items-center gap-x-2 gap-y-3 px-4 py-3 2xl:max-w-(--breakpoint-2xl)">
         <SiteLogo />
-        <nav aria-label={t("mainLabel")} className="ms-6 hidden xl:block">
-          <ul className="flex items-center gap-1">
+        <nav aria-label={t("mainLabel")} className="ms-4 hidden 2xl:block">
+          <ul className="flex items-center gap-0.5">
             {MAIN_NAV.map((item) => (
               <li key={item.href}>
                 <NavLink
                   href={item.href}
                   className={cx(
-                    "relative block rounded-md px-2.5 py-2 text-sm whitespace-nowrap hover:bg-text/10 aria-[current=page]:font-semibold",
+                    "relative block rounded-md px-2 py-2 text-sm whitespace-nowrap hover:bg-text/10 aria-[current=page]:font-semibold",
                     // A gold bar under the current page: gold as an accent, never as text (§13).
-                    "after:absolute after:inset-x-2.5 after:bottom-0.5 after:h-0.5 after:rounded-full after:bg-accent after:opacity-0 aria-[current=page]:after:opacity-100",
+                    "after:absolute after:inset-x-2 after:bottom-0.5 after:h-0.5 after:rounded-full after:bg-accent after:opacity-0 aria-[current=page]:after:opacity-100",
                     FOCUS_RING,
                   )}
                 >
