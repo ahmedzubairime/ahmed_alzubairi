@@ -430,11 +430,25 @@ describe("CourseList", () => {
     cleanup();
     show(<CourseList courses={courses.slice(0, 1)} type="recorded" />);
     expect(screen.getByText(en.emptyFiltered)).toBeTruthy();
+    // The active filter keeps its chips, so "All" can clear it.
+    const chips = within(screen.getByRole("navigation", { name: en.typeFilter })).getAllByRole("link");
+    expect(chips.map((chip) => chip.getAttribute("href"))).toEqual([
+      "/training",
+      "/training?type=in_person",
+      "/training?type=recorded",
+    ]);
     cleanup();
     show(<CourseList courses={[]} type={null} />);
     expect(screen.getByText(en.empty)).toBeTruthy();
     // One type, or none: no chips.
     expect(screen.queryByRole("navigation")).toBeNull();
+  });
+
+  it("shows a card's date in the visitor's zone, not UTC", () => {
+    const startsAt = "2027-03-01T00:30:00Z";
+    show(<CourseList courses={[course({ startsAt })]} type={null} />);
+    const local = new Intl.DateTimeFormat("en", { dateStyle: "long" }).format(new Date(startsAt));
+    expect(screen.getByRole("article").querySelector(`time[datetime="${startsAt}"]`)?.textContent).toBe(local);
   });
 
   it("renders a title as text, never as markup", () => {

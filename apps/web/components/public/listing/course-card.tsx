@@ -3,6 +3,7 @@ import { useFormatter, useLocale, useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui";
 import { cx } from "@/components/ui/cx";
+import { LocalDateTime } from "@/components/training/local-date-time";
 import { Link } from "@/i18n/navigation";
 import { formatDate } from "../home/format";
 import { CalendarIcon, PlaceIcon, ScreenIcon } from "./icons";
@@ -99,7 +100,8 @@ export function CourseCard({
                 <span className="sr-only">{t("date")}</span>
               </dt>
               <dd>
-                <time dateTime={startsAt}>{formatDate(startsAt, locale)}</time>
+                {/* The visitor's zone, as on the course page. */}
+                <LocalDateTime value={startsAt} fallback={formatDate(startsAt, locale)} dateOnly />
               </dd>
             </div>
           )}

@@ -81,9 +81,11 @@ export default async function MyCoursesPage({ params }: { params: Promise<{ loca
                   <div>
                     <dt className="font-semibold text-text-secondary">{t("registeredOn")}</dt>
                     <dd className="mt-0.5">
-                      <time dateTime={course.registeredAt}>
-                        {formatDate(course.registeredAt, locale)}
-                      </time>
+                      <LocalDateTime
+                        value={course.registeredAt}
+                        fallback={formatDate(course.registeredAt, locale)}
+                        dateOnly
+                      />
                     </dd>
                   </div>
                 </dl>
