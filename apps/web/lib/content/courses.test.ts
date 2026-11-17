@@ -136,6 +136,24 @@ describe("getCourses", () => {
     expect((await getCourses("en")).map((item) => item.slug)).toEqual(["sooner", "later", "recorded"]);
   });
 
+  it("leaves out courses whose date has passed, at the moment it's asked", async () => {
+    db.courses = [
+      course("past", { starts_at: "2027-01-31T09:00:00+00:00" }),
+      course("now", { starts_at: "2027-02-01T09:00:00+00:00" }),
+      course("upcoming", { starts_at: "2027-02-02T09:00:00+00:00" }),
+      course("undated", { type: "recorded", starts_at: null }),
+    ];
+    const now = new Date("2027-02-01T09:00:00.000Z");
+    expect((await getCourses("en", now)).map((item) => item.slug)).toEqual(["upcoming", "undated"]);
+    // The same read a day earlier still lists them: the cut isn't cached.
+    expect((await getCourses("en", new Date("2027-01-01T00:00:00.000Z"))).map((item) => item.slug)).toEqual([
+      "past",
+      "now",
+      "upcoming",
+      "undated",
+    ]);
+  });
+
   it("is cached under the courses tag, and throws when the read fails", async () => {
     await getCourses("en");
     expect(cacheTag).toHaveBeenCalledWith("content:courses");
@@ -184,6 +202,13 @@ describe("hasCourse", () => {
   });
 });
 
+describe("getCourse", () => {
+  it("still returns a course whose date has passed, so its page opens", async () => {
+    db.courses = [course("past", { starts_at: "2026-11-06T09:00:00+00:00" })];
+    expect((await getCourse("past", "en"))?.startsAt).toBe("2026-11-06T09:00:00.000Z");
+  });
+});
+
 describe("courseState", () => {
   const now = new Date("2027-01-01T00:00:00.000Z");
   const future = "2027-02-01T00:00:00.000Z";
@@ -191,8 +216,9 @@ describe("courseState", () => {
     ["a recorded course", { type: "recorded", startsAt: null, seatsLeft: null }, "soon"],
     ["a custom course", { type: "custom", startsAt: future, seatsLeft: null }, "closed"],
     ["no date", { type: "in_person", startsAt: null, seatsLeft: 5 }, "closed"],
-    ["a past date", { type: "online_live", startsAt: "2026-12-31T23:59:59.000Z", seatsLeft: 5 }, "closed"],
-    ["the date being now", { type: "in_person", startsAt: now.toISOString(), seatsLeft: 5 }, "closed"],
+    ["a past date", { type: "online_live", startsAt: "2026-12-31T23:59:59.000Z", seatsLeft: 5 }, "ended"],
+    ["the date being now", { type: "in_person", startsAt: now.toISOString(), seatsLeft: 5 }, "ended"],
+    ["a past date with no seats left", { type: "in_person", startsAt: "2026-12-01T00:00:00.000Z", seatsLeft: 0 }, "ended"],
     ["no seats left", { type: "in_person", startsAt: future, seatsLeft: 0 }, "full"],
     ["seats left", { type: "online_live", startsAt: future, seatsLeft: 1 }, "open"],
     ["no seat limit", { type: "in_person", startsAt: future, seatsLeft: null }, "open"],

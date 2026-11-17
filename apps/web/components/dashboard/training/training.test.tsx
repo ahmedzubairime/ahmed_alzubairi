@@ -523,6 +523,14 @@ describe("RequestList", () => {
 });
 
 describe("CourseForm", () => {
+  it("isolates the Latin slug example in the Arabic hint, so RTL keeps its order", () => {
+    withIntl(<CourseForm />, "ar");
+    const input = screen.getByLabelText(/اسم الرابط/);
+    const hint = document.getElementById(input.getAttribute("aria-describedby")!.split(" ")[0]!);
+    // FSI … PDI: the same isolation as <bdi>, inside the hint's plain text.
+    expect(hint?.textContent).toBe("حروف وأرقام بينها شرطات، مثل \u2068project-management\u2069.");
+  });
+
   it("refuses to send with errors, marking the fields", async () => {
     withIntl(<CourseForm />);
     await act(async () => {

@@ -69,7 +69,7 @@
     "audienceHint": "اختياري.",
     "place": "المكان",
     "slug": "اسم الرابط (slug)",
-    "slugHint": "حروف وأرقام بينها شرطات، مثل project-management.",
+    "slugHint": "حروف وأرقام بينها شرطات، مثل \u2068project-management\u2069.",
     "type": "النوع",
     "status": "الحالة",
     "statusHint": "المسودة لا تظهر في الموقع أبدًا.",
