@@ -29,7 +29,7 @@ export function MobileMenu({ extra }: { extra?: ReactNode }) {
   }, [open]);
 
   return (
-    <div className="xl:hidden">
+    <div className="2xl:hidden">
       <button
         type="button"
         className={cx("inline-flex size-9 items-center justify-center rounded-md hover:bg-text/10", FOCUS_RING)}
