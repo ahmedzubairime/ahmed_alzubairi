@@ -37,8 +37,8 @@ const nextConfig: NextConfig = {
       { source: "/ingest/:path*", destination: "https://eu.i.posthog.com/:path*" },
     ];
   },
-  // PostHog's paths end in "/"; without this each batch gets a 308 first.
-  skipTrailingSlashRedirect: true,
+  // No skipTrailingSlashRedirect: it made "/ar/about/" answer 200 next to
+  // "/ar/about". PostHog's "/ingest/e/" takes a 308 to "/ingest/e" first.
   turbopack: {
     rules: {
       "*.css": {
