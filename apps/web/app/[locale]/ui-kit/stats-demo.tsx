@@ -31,7 +31,7 @@ const SAMPLE = {
     requests: "الطلبات",
     showValues: "عرض القيم",
     banner: "شريط ملفات تعريف الارتباط",
-    bannerIntro: "مثبّت أسفل الصفحة، والزرّان بالوزن نفسه. يمكن الوصول إليهما بمفتاح Tab ولا يحبس التركيز.",
+    bannerIntro: "مثبّت أسفل الصفحة، والزرّان بالوزن نفسه. يمكن الوصول إليهما بمفتاح Tab ولا يحبس التركيز. تنتهي الصفحة بفراغ بارتفاعه، فلا يغطي أي زر.",
     showBanner: "إظهار الشريط",
     choice: "آخر اختيار:",
     accepted: "قبول",
@@ -61,7 +61,7 @@ const SAMPLE = {
     requests: "Requests",
     showValues: "Show values",
     banner: "Cookie banner",
-    bannerIntro: "Fixed to the bottom, with two buttons of the same weight. Both are reachable by Tab, and focus isn't trapped.",
+    bannerIntro: "Fixed to the bottom, with two buttons of the same weight. Both are reachable by Tab, and focus isn't trapped. The page ends with a spacer as tall as the banner, so it never covers a button.",
     showBanner: "Show the banner",
     choice: "Last choice:",
     accepted: "Accept",
@@ -83,7 +83,8 @@ function Block({ title, intro, children }: { title: string; intro?: string; chil
 export function StatsDemo() {
   const locale = useLocale();
   const t = SAMPLE[locale === "ar" ? "ar" : "en"];
-  const [bannerOpen, setBannerOpen] = useState(true);
+  // Closed at first: the site's own banner already shows until a visitor chooses.
+  const [bannerOpen, setBannerOpen] = useState(false);
   const [choice, setChoice] = useState<"accepted" | "declined" | null>(null);
 
   const number = new Intl.NumberFormat(locale);
