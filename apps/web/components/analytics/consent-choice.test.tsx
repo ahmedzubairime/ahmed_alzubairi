@@ -2,6 +2,7 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import type { ReactNode } from "react";
+import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import ar from "@/messages/ar/Consent.json";
@@ -54,6 +55,32 @@ describe("ConsentChoice", () => {
   it.each(["granted", "denied"])("hides before the first paint when the choice (%s) is stored", (choice) => {
     localStorage.setItem("consent", choice);
     expect(parseServerHtml().hidden).toBe(true);
+  });
+
+  it("shows the banner again when the choice is cleared between the script and hydration", async () => {
+    localStorage.setItem("consent", "denied");
+    const wrapper = parseServerHtml();
+    expect(wrapper.hidden).toBe(true);
+    localStorage.removeItem("consent"); // another tab cleared it
+    let root!: ReturnType<typeof hydrateRoot>;
+    await act(async () => {
+      root = hydrateRoot(document.body, tree());
+    });
+    expect(wrapper.hidden).toBe(false);
+    expect(screen.getByRole("region", { name: en.label })).toBeTruthy();
+    act(() => root.unmount());
+  });
+
+  it("keeps a script-hidden banner hidden after hydration while the choice is stored", async () => {
+    localStorage.setItem("consent", "granted");
+    const wrapper = parseServerHtml();
+    let root!: ReturnType<typeof hydrateRoot>;
+    await act(async () => {
+      root = hydrateRoot(document.body, tree());
+    });
+    expect(wrapper.hidden).toBe(true);
+    expect(screen.queryByRole("region")).toBeNull();
+    act(() => root.unmount());
   });
 
   it("renders no script in a client render, where it would never run", () => {

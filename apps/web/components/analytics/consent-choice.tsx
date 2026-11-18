@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { ConsentBanner } from "@/components/consent-banner";
 import { CONSENT_EVENT, CONSENT_KEY, readConsent, writeConsent, type Consent } from "@/lib/analytics/consent";
 
@@ -47,13 +47,20 @@ export function ConsentChoice() {
     setChosen(true);
     writeConsent(consent);
   };
+  // React doesn't patch attributes while hydrating, so the script's `hidden`
+  // would outlive a choice cleared in another tab before hydration. Once
+  // mounted, the live state decides, whatever the script did.
+  const wrapper = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (wrapper.current) wrapper.current.hidden = !open;
+  }, [open]);
   return (
     <>
       {/*
-        A box-less wrapper: the banner itself is fixed. The script may hide it
-        before hydration; whenever the banner is open, React shows it again.
+        The script may hide this wrapper before hydration; after it, the
+        effect above shows or hides it from the live state.
       */}
-      <div data-consent-banner="" hidden={open ? false : undefined} suppressHydrationWarning>
+      <div ref={wrapper} data-consent-banner="" suppressHydrationWarning>
         <ConsentBanner
           open={open}
           onAccept={() => choose("granted")}
