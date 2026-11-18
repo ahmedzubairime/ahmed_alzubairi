@@ -1,0 +1,16 @@
+{
+  "heading": "الملخص",
+  "number": "{count, number}",
+  "items": {
+    "newRequests": "طلبات استشارة جديدة",
+    "activeConsultations": "استشارات مفتوحة",
+    "documentRequests": "طلبات وثائق مفتوحة بانتظار القرار",
+    "unreadMessages": "رسائل تواصل غير مقروءة",
+    "registrations": "تسجيلات في الدورات خلال آخر {days} أيام",
+    "newSubscribers": "مشتركون جدد في النشرة البريدية خلال آخر {days} أيام"
+  },
+  "assigned": {
+    "newRequests": "طلبات استشارة جديدة مسندة إليك",
+    "activeConsultations": "استشارات مفتوحة مسندة إليك"
+  }
+}
