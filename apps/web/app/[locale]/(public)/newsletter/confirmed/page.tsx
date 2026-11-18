@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { CONTAINER } from "@/components/public/projects";
 import { MAIN_CONTENT_ID } from "@/components/skip-link";
 import { ButtonLink } from "@/components/ui";
+import { TrackConfirmed } from "./track-confirmed";
 import { routing } from "@/i18n/routing";
 
 type Props = {
@@ -43,6 +44,7 @@ export default async function NewsletterConfirmedPage({ params, searchParams }: 
       <div className={`${CONTAINER} max-w-2xl py-16 md:py-24`}>
         <h1 className="text-3xl md:text-4xl">{t(`confirm.${status}.title`)}</h1>
         <p className="mt-4 text-lg text-text-secondary">{t(`confirm.${status}.text`)}</p>
+        {status === "confirmed" && <TrackConfirmed />}
         <ButtonLink href="/" variant="secondary" className="mt-8">
           {t("confirm.home")}
         </ButtonLink>

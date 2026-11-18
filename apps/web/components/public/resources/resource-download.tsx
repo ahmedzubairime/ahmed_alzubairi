@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { Button, Checkbox, TextField } from "@/components/ui";
 import { requestDownload, startDownload } from "./api";
+import { track } from "@/lib/analytics/track";
 
 /**
  * A resource card's action (§6.9). A direct resource downloads in one click.
@@ -25,6 +26,7 @@ export function ResourceDownload({ id, title, access }: { id: string; title: str
     const result = await requestDownload(id);
     setBusy(false);
     if (result.ok) {
+      track("resource_downloaded", { resource_access: "direct" });
       setStarted(true);
       startDownload(result.url);
       // A request with no body is only ever invalid for want of the email: the
@@ -98,6 +100,7 @@ export function EmailGateDialog({ id, title, onClose }: { id: string; title: str
     setState({ step: "sending" });
     const result = await requestDownload(id, { email: address, consent });
     if (result.ok) {
+      track("resource_downloaded", { resource_access: "email" });
       setState({ step: "done" });
       startDownload(result.url);
     } else setState({ step: "form", error: result.message ?? t("failed") });

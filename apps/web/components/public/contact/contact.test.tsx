@@ -10,12 +10,16 @@ vi.mock("next-intl", async (original) => ({
     values ? `${key} ${JSON.stringify(values)}` : key,
 }));
 
+const track = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/analytics/track", () => ({ track }));
+
 const { ContactForm } = await import("./contact-form");
 const { ContactChannels, contactChannels } = await import("./channels");
 
 const fetchMock = vi.fn();
 
 beforeEach(() => {
+  track.mockClear();
   fetchMock.mockReset();
   vi.stubGlobal("fetch", fetchMock);
 });
@@ -150,5 +154,40 @@ describe("Contact messages", () => {
   it("never promise a response time (§6.14)", () => {
     const text = JSON.stringify([ar, en]);
     expect(text).not.toMatch(/\d|hour|day|week|within|soon|respond|reply|ساع|يوم|أيام|أسبوع|خلال|قريب|سأرد|الرد/i);
+  });
+});
+
+describe("ContactForm analytics", () => {
+  it("sends contact_sent once on success, with the category only", async () => {
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ ok: true }), { status: 201 }));
+    render(<ContactForm />);
+    fill(VALID);
+    submit();
+    await screen.findByRole("heading", { name: "sentTitle" });
+    expect(track).toHaveBeenCalledExactlyOnceWith("contact_sent", { org_type: "company" });
+  });
+
+  it("sends nothing for an invalid email, a refused send or a network error", async () => {
+    render(<ContactForm />);
+    fill({ ...VALID, email: "not-an-email" });
+    submit();
+    expect(fetchMock).not.toHaveBeenCalled();
+    cleanup();
+
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ error: { code: "validation_failed", message: "Bad." } }), { status: 400 }),
+    );
+    render(<ContactForm />);
+    fill(VALID);
+    submit();
+    await screen.findByRole("alert");
+    cleanup();
+
+    fetchMock.mockRejectedValue(new TypeError("offline"));
+    render(<ContactForm />);
+    fill(VALID);
+    submit();
+    await screen.findByRole("alert");
+    expect(track).not.toHaveBeenCalled();
   });
 });

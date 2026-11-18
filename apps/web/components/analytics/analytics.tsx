@@ -10,6 +10,7 @@ import {
   syncRecording,
   type PosthogLike,
 } from "@/lib/analytics/client";
+import { trackerOff, trackerStarted } from "@/lib/analytics/track";
 
 type Idle = (callback: () => void) => number;
 
@@ -49,11 +50,16 @@ function Tracker() {
 
     const start = async () => {
       const config = await fetchPosthogConfig();
-      if (!config || cancelled) return;
+      if (cancelled) return;
+      if (!config) {
+        trackerOff();
+        return;
+      }
       const { default: instance } = await import("posthog-js");
       if (cancelled) return;
       instance.init(config.key, posthogOptions(config, consent.current));
       posthog.current = instance;
+      trackerStarted(instance);
       syncRecording(instance, path.current);
     };
     const idle: Idle =

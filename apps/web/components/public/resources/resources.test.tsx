@@ -43,6 +43,9 @@ vi.mock("@/i18n/navigation", () => ({
 }));
 vi.mock("./api", async (original) => ({ ...(await original<typeof import("./api")>()), startDownload }));
 
+const track = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/analytics/track", () => ({ track }));
+
 const { requestDownload } = await import("./api");
 const { listingQuery, parseResourcesQuery } = await import("./query");
 const { ResourceDownload } = await import("./resource-download");
@@ -284,5 +287,38 @@ describe("ResourcesList", () => {
     expect(screen.getByText("noResults")).toBeTruthy();
     expect(screen.getByRole("link", { name: "clearFilters" }).getAttribute("href")).toBe("/resources");
     expect(screen.getByRole("status").textContent).toBe('resultsCount:{"count":0}');
+  });
+});
+
+describe("ResourceDownload analytics", () => {
+  it("sends resource_downloaded once for a direct download, with its access only", async () => {
+    stubFetch(reply(200, { url: URL_OK }));
+    render(<ResourceDownload id={ID} title="Board guide" access="direct" />);
+    fireEvent.click(screen.getByRole("button", { name: /^downloadLabel/ }));
+    await waitFor(() => expect(startDownload).toHaveBeenCalled());
+    expect(track).toHaveBeenCalledExactlyOnceWith("resource_downloaded", { resource_access: "direct" });
+  });
+
+  it("sends it once for an email-gated download, never on a refused email", async () => {
+    stubFetch(reply(400, { error: { code: "validation_failed", message: "Bad email" } }), reply(200, { url: URL_OK }));
+    render(<ResourceDownload id={ID} title="Board guide" access="email" />);
+    fireEvent.click(screen.getByRole("button", { name: /^downloadByEmailLabel/ }));
+    const dialog = within(screen.getByRole("dialog", { hidden: true }));
+    fireEvent.change(dialog.getByLabelText("email"), { target: { value: "bad@example.com" } });
+    fireEvent.click(dialog.getByRole("button", { name: "gateSubmit", hidden: true }));
+    expect(await dialog.findByText("Bad email")).toBeTruthy();
+    expect(track).not.toHaveBeenCalled();
+    fireEvent.change(dialog.getByLabelText("email"), { target: { value: "good@example.com" } });
+    fireEvent.click(dialog.getByRole("button", { name: "gateSubmit", hidden: true }));
+    await waitFor(() => expect(startDownload).toHaveBeenCalled());
+    expect(track).toHaveBeenCalledExactlyOnceWith("resource_downloaded", { resource_access: "email" });
+  });
+
+  it("sends nothing when a direct download is refused", async () => {
+    stubFetch(reply(404, { error: { code: "not_found", message: "Gone" } }));
+    render(<ResourceDownload id={ID} title="Board guide" access="direct" />);
+    fireEvent.click(screen.getByRole("button", { name: /^downloadLabel/ }));
+    await screen.findByRole("alert");
+    expect(track).not.toHaveBeenCalled();
   });
 });

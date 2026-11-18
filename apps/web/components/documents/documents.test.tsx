@@ -33,6 +33,9 @@ vi.mock("./pdf-pages", () => ({
 }));
 
 const { DocumentRequestProvider, RequestButton, SelectBox } = await import("./request-provider");
+const track = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/analytics/track", () => ({ track }));
+
 const { RequestCard } = await import("./request-card");
 const { DocumentViewer, downloadName } = await import("./viewer");
 const { downloadUrl, openDocument, sendDocumentRequest } = await import("./api");
@@ -88,6 +91,7 @@ function sent() {
 }
 
 beforeEach(() => {
+  track.mockClear();
   vi.stubGlobal("fetch", fetchMock);
   fetchMock.mockReset();
   router.push.mockReset();
@@ -335,6 +339,33 @@ const REQUEST: OwnRequest = {
   expiresAt: null,
   createdAt: "2026-11-14T10:00:00.000Z",
 };
+
+describe("RequestDialog analytics", () => {
+  it("sends document_requested once, with the number of documents only", async () => {
+    fetchMock.mockResolvedValueOnce(json({ requestIds: [A, B] }));
+    auth.isSignedIn = true;
+    list();
+    fireEvent.click(screen.getByLabelText("Select Course certificate"));
+    fireEvent.click(screen.getByLabelText("Select Thank-you letter"));
+    fireEvent.click(screen.getByRole("button", { name: "Request selected documents" }));
+    fireEvent.change(screen.getByLabelText("Purpose"), { target: { value: "a tender file" } });
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Send request" })));
+    expect(screen.getByRole("status").textContent).toBe("Your request is under review.");
+    expect(track).toHaveBeenCalledExactlyOnceWith("document_requested", { count: 2 });
+  });
+
+  it("sends nothing when the request is refused, or the purpose is missing", async () => {
+    fetchMock.mockResolvedValueOnce(json({ error: { code: "forbidden", message: "Not allowed." } }, 403));
+    auth.isSignedIn = true;
+    list();
+    fireEvent.click(screen.getByRole("button", { name: `Request to view: ${DOCS[0]!.title}` }));
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Send request" })));
+    fireEvent.change(screen.getByLabelText("Purpose"), { target: { value: "x" } });
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Send request" })));
+    expect(screen.getByRole("alert").textContent).toContain("Not allowed.");
+    expect(track).not.toHaveBeenCalled();
+  });
+});
 
 describe("groupRequests", () => {
   const now = new Date("2026-11-14T12:00:00.000Z");

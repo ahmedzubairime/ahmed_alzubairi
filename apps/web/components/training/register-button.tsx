@@ -2,9 +2,12 @@
 
 import { courseRegisterResponseSchema, errorResponseSchema } from "@repo/shared";
 import { useTranslations } from "next-intl";
+import { useParams } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui";
 import { useRouter } from "@/i18n/navigation";
+import { slugOrNothing } from "@/lib/analytics/events";
+import { track } from "@/lib/analytics/track";
 
 /**
  * The register button of a course page (§6.7). The server decides the seat
@@ -15,6 +18,8 @@ import { useRouter } from "@/i18n/navigation";
 export function RegisterButton({ courseId }: { courseId: string }) {
   const t = useTranslations("Training.register");
   const router = useRouter();
+  // The course page's own slug, for analytics only.
+  const params = useParams<{ slug?: string }>();
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +31,13 @@ export function RegisterButton({ courseId }: { courseId: string }) {
     try {
       const response = await fetch(`/api/courses/${courseId}/register`, { method: "POST" });
       const body: unknown = await response.json().catch(() => null);
-      if (response.ok && courseRegisterResponseSchema.safeParse(body).success) {
+      const registered = response.ok ? courseRegisterResponseSchema.safeParse(body) : null;
+      if (registered?.success) {
+        // Only a new registration counts, not "already registered".
+        if (registered.data.outcome === "registered") {
+          const slug = slugOrNothing(params?.slug);
+          track("course_registered", slug ? { course_slug: slug } : {});
+        }
         setDone(true);
       } else {
         const parsed = errorResponseSchema.safeParse(body);

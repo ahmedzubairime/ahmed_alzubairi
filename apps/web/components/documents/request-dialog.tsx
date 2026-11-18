@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { Button, ButtonLink, TextArea } from "@/components/ui";
 import { onboardingPath } from "@/lib/auth/return-path";
+import { track } from "@/lib/analytics/track";
 import { sendDocumentRequest } from "./api";
 import { MY_DOCUMENTS_PATH, requestPath } from "./paths";
 
@@ -72,6 +73,7 @@ export function RequestDialog({
       text,
     );
     if (result.ok) {
+      track("document_requested", { count: documents.length });
       setState({ step: "done" });
       onSent();
       return;

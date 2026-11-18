@@ -49,6 +49,11 @@ vi.mock("@/i18n/navigation", () => ({
   },
 }));
 
+const track = vi.hoisted(() => vi.fn());
+const route = vi.hoisted(() => ({ params: { slug: "governance-basics" } as { slug?: string } }));
+vi.mock("@/lib/analytics/track", () => ({ track }));
+vi.mock("next/navigation", () => ({ useParams: () => route.params }));
+
 const { CourseList } = await import("./course-list");
 const { CustomRequestForm } = await import("./custom-request-form");
 const { parseTypeFilter, readMyCourses, readViewer } = await import("./data");
@@ -577,5 +582,56 @@ describe("paths and the type filter", () => {
     expect(keys(ar)).toEqual(keys(en));
     expect(ar.register.full).toBe("اكتملت المقاعد");
     expect(ar.account.title).toBe("دوراتي");
+  });
+});
+
+describe("RegisterButton analytics", () => {
+  const click = () => fireEvent.click(screen.getByRole("button", { name: en.register.button }));
+  const answer = (outcome: string) =>
+    fetchMock.mockImplementation(async () => new Response(JSON.stringify({ outcome, seatsLeft: 3 }), { status: 200 }));
+
+  beforeEach(() => {
+    track.mockClear();
+    route.params = { slug: "governance-basics" };
+  });
+
+  it("sends course_registered once for a new registration, with the course's slug", async () => {
+    answer("registered");
+    show(<RegisterButton courseId={COURSE_ID} />);
+    click();
+    await waitFor(() => expect(screen.getByRole("status").textContent).toBe(en.register.justRegistered));
+    expect(track).toHaveBeenCalledExactlyOnceWith("course_registered", { course_slug: "governance-basics" });
+  });
+
+  it("decodes an Arabic slug, and leaves out one that isn't a slug", async () => {
+    answer("registered");
+    route.params = { slug: encodeURIComponent("أساسيات-الحوكمة") };
+    show(<RegisterButton courseId={COURSE_ID} />);
+    click();
+    await waitFor(() => expect(track).toHaveBeenCalledWith("course_registered", { course_slug: "أساسيات-الحوكمة" }));
+    cleanup();
+    track.mockClear();
+    route.params = { slug: "a b<script>" };
+    show(<RegisterButton courseId={COURSE_ID} />);
+    click();
+    await waitFor(() => expect(track).toHaveBeenCalledWith("course_registered", {}));
+  });
+
+  it("sends nothing when already registered, refused or offline", async () => {
+    answer("already_registered");
+    show(<RegisterButton courseId={COURSE_ID} />);
+    click();
+    await waitFor(() => expect(screen.getByRole("status")).toBeTruthy());
+    cleanup();
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ error: { code: "course_full", message: "Full" } }), { status: 409 }),
+    );
+    show(<RegisterButton courseId={COURSE_ID} />);
+    click();
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toBe("Full"));
+    fetchMock.mockRejectedValueOnce(new Error("offline"));
+    click();
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toBe(en.register.networkError));
+    expect(track).not.toHaveBeenCalled();
   });
 });
