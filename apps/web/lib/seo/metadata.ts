@@ -137,13 +137,19 @@ export function metaDescription(text: string | null | undefined): string | undef
   // Cut on whole graphemes, so an emoji and its modifiers stay together, and
   // within the code-point budget once the ellipsis is added.
   let cut = "";
+  let next = "";
   for (const { segment } of new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(folded)) {
-    if (Array.from(cut + segment).length > DESCRIPTION_MAX - 1) break;
+    if (Array.from(cut + segment).length > DESCRIPTION_MAX - 1) {
+      next = segment;
+      break;
+    }
     cut += segment;
   }
-  // The last word that fits; a hard cut only when there's no space at all.
+  // A word that ends right at the cut is whole. Otherwise drop the partial
+  // word; a hard cut only when there's no space at all.
   const space = cut.lastIndexOf(" ");
-  return `${(space > 0 ? cut.slice(0, space) : cut).trimEnd()}…`;
+  const kept = next === " " || space <= 0 ? cut : cut.slice(0, space);
+  return `${kept.trimEnd()}…`;
 }
 
 /** `<meta name="robots" content="noindex, nofollow">`. */

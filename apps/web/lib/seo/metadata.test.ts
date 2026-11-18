@@ -144,6 +144,12 @@ describe("metaDescription", () => {
     expect(result.endsWith("word…")).toBe(true);
   });
 
+  it("keeps a word that ends exactly at the cut", () => {
+    // 159 code points: "Read " + 30 × "word " + "this", then a space.
+    const text = `Read ${"word ".repeat(30)}this next`;
+    expect(metaDescription(text)).toBe(`Read ${"word ".repeat(30)}this…`);
+  });
+
   it("keeps the last whole word, even early in the text", () => {
     expect(metaDescription(`Case notes ${"a".repeat(170)}`)).toBe("Case notes…");
   });
