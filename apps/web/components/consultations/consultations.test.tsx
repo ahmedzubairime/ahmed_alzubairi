@@ -19,6 +19,9 @@ vi.mock("@/i18n/navigation", () => ({
   ),
 }));
 
+const track = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/analytics/track", () => ({ track }));
+
 const { NewConsultationForm, preselectedService } = await import("./new-consultation-form");
 const { ConsultationThread, attachmentHref } = await import("./consultation-thread");
 
@@ -85,6 +88,34 @@ describe("preselectedService", () => {
   it("selects nothing for an unknown or missing value", () => {
     expect(preselectedService(SERVICES, "nope")).toBe("");
     expect(preselectedService(SERVICES, undefined)).toBe("");
+  });
+});
+
+describe("NewConsultationForm analytics", () => {
+  beforeEach(() => track.mockClear());
+
+  it("sends consultation_requested once, with the service's slug only, even after a retry", async () => {
+    const api = fakeApi();
+    api.upload.mockRejectedValueOnce(new ApiError("The file didn't finish uploading. Try again."));
+    wrap(<NewConsultationForm services={SERVICES} organization="Ministry X" api={api} />);
+    fillForm();
+    pick([pdf()]);
+    fireEvent.click(screen.getByRole("button", { name: enPage.form.submit }));
+    await screen.findByText(/The file didn't finish uploading/);
+    fireEvent.click(screen.getByRole("button", { name: enPage.form.submit }));
+    await waitFor(() => expect(router.push).toHaveBeenCalled());
+    expect(track).toHaveBeenCalledExactlyOnceWith("consultation_requested", { service_slug: "strategy-review" });
+  });
+
+  it("sends nothing when the server refuses to create it, or the form is incomplete", async () => {
+    const api = fakeApi({ create: vi.fn(async () => Promise.reject(new ApiError("Refused."))) });
+    wrap(<NewConsultationForm services={SERVICES} organization={null} api={api} />);
+    fireEvent.click(screen.getByRole("button", { name: enPage.form.submit }));
+    expect(api.create).not.toHaveBeenCalled();
+    fillForm();
+    fireEvent.click(screen.getByRole("button", { name: enPage.form.submit }));
+    expect(await screen.findByText("Refused.")).toBeTruthy();
+    expect(track).not.toHaveBeenCalled();
   });
 });
 

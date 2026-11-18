@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import { useId, useState, type FormEvent, type ReactNode } from "react";
 import { Link } from "@/i18n/navigation";
 import { normalizePhone } from "@/lib/profile/phone";
+import { track } from "@/lib/analytics/track";
 
 const INPUT =
   "mt-1 block h-11 w-full rounded-md border border-text/20 bg-surface px-3 text-text focus:outline-2 focus:outline-offset-1 focus:outline-accent aria-[invalid=true]:border-red-600 dark:aria-[invalid=true]:border-red-400";
@@ -101,6 +102,8 @@ export function OnboardingForm({
       });
       // A conflict means the profile already exists, so there is nothing left to do.
       if (response.ok || response.status === 409) {
+        // 409: the profile already existed, so this isn't a new sign-up.
+        if (response.ok) track("signed_up");
         router.replace(destination);
         return;
       }

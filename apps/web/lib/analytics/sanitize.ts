@@ -1,3 +1,5 @@
+import { EVENT_PROPERTIES } from "./events";
+
 /**
  * The rules every PostHog event passes before it leaves the browser (§9):
  * URLs lose their query string and hash (they can hold a search term, an
@@ -18,13 +20,6 @@ export const URL_PROPERTIES = [
   "$session_entry_pathname",
   "$session_entry_referrer",
 ] as const;
-
-/**
- * Our own (non-`$`) properties allowed per event. Empty for now: P6A-T06 adds
- * the events of §6.23 and their properties. An event that isn't listed here
- * may carry PostHog's own `$` properties only.
- */
-export const EVENT_PROPERTIES: Readonly<Record<string, readonly string[]>> = {};
 
 /** PostHog's own events we keep. Any other `$` event is dropped. */
 export const POSTHOG_EVENTS = new Set([

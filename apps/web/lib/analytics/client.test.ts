@@ -106,13 +106,14 @@ describe("fetchPosthogConfig", () => {
     expect(fetcher).toHaveBeenCalledWith("/api/posthog-config");
   });
 
-  it("is null on 404, a bad body or a network error", async () => {
-    const off = async () => Response.json({ error: { code: "not_found", message: "off" } }, { status: 404 });
+  it("is null when off (204), on an error status, a bad body or a network error", async () => {
+    const off = async () => new Response(null, { status: 204 });
+    const missing = async () => Response.json({ error: { code: "not_found", message: "off" } }, { status: 404 });
     const bad = async () => Response.json({ key: "", host: "nope" });
     const down = async () => {
       throw new TypeError("Failed to fetch");
     };
-    for (const fetcher of [off, bad, down]) {
+    for (const fetcher of [off, missing, bad, down]) {
       expect(await fetchPosthogConfig(fetcher as unknown as typeof fetch)).toBeNull();
     }
   });

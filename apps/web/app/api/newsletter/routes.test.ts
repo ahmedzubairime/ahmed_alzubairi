@@ -179,7 +179,7 @@ describe("GET /api/newsletter/confirm", () => {
     rows = [row({ locale: "ar" })];
     const response = await get("?token=good-token");
     expect(response.status).toBe(303);
-    expect(response.headers.get("location")).toBe("https://site.example/ar/newsletter/confirmed");
+    expect(response.headers.get("location")).toBe("https://site.example/ar/newsletter/confirmed?status=confirmed");
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(response.headers.get("referrer-policy")).toBe("no-referrer");
     expect(rows[0]).toMatchObject({ status: "confirmed", confirm_token_hash: null });

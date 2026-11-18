@@ -57,8 +57,11 @@ describe("sanitizeEvent", () => {
     expect(sanitizeEvent({ event: "$exception", properties: { email: "a@b.test" } })).toBeNull();
   });
 
-  it("drops our own events until T06 lists them", () => {
-    expect(sanitizeEvent({ event: "contact_sent", properties: {} })).toBeNull();
+  it("keeps our listed events with their allowed properties only", () => {
+    expect(sanitizeEvent({ event: "contact_sent", properties: { org_type: "company", locale: "ar", $lib: "web" } })).not.toBeNull();
+    expect(sanitizeEvent({ event: "contact_sent", properties: { org_type: "company", subject: "Hi" } })).toBeNull();
+    expect(sanitizeEvent({ event: "document_requested", properties: { count: 2, request_id: "x" } })).toBeNull();
+    expect(sanitizeEvent({ event: "not_listed", properties: {} })).toBeNull();
   });
 
   it("drops PostHog events we didn't keep (autocapture, clicks, identify)", () => {

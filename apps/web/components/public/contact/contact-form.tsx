@@ -11,6 +11,7 @@ import {
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Button, Select, TextArea, TextField } from "@/components/ui";
+import { track } from "@/lib/analytics/track";
 
 type Field = keyof ContactRequest;
 type FieldErrors = Partial<Record<Field, string>>;
@@ -90,6 +91,8 @@ export function ContactForm() {
         body: JSON.stringify(body),
       });
       if (response.ok) {
+        // The category only: never the name, email, subject or message.
+        track("contact_sent", { org_type: body.orgType });
         setSent(true);
       } else {
         const parsed = errorResponseSchema.safeParse(await response.json().catch(() => null));

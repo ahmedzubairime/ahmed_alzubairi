@@ -11,6 +11,7 @@ import { PaperclipIcon } from "@/components/workspace/icons";
 import { useRouter } from "@/i18n/navigation";
 import { consultationApi, type ConsultationApi } from "./api";
 import { useFiles } from "./use-files";
+import { track } from "@/lib/analytics/track";
 
 export type ServiceOption = { id: string; slug: string; title: string };
 
@@ -95,6 +96,9 @@ export function NewConsultationForm({
           ...(trimmedOrg ? { organization: trimmedOrg } : {}),
         });
         setCreatedId(id);
+        // Once, when the server created it; a retry reuses the id.
+        const slug = services.find((service) => service.id === serviceId)?.slug;
+        track("consultation_requested", slug ? { service_slug: slug } : {});
       }
 
       const uploaded = await filesState.uploadAll(id);
