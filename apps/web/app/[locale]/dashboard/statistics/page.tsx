@@ -14,11 +14,20 @@ import { createUserClient } from "@/lib/supabase/user";
 
 type Params = Promise<{ locale: string }>;
 
-/** The viewer's profile time zone, read with their own client; UTC when unset. */
+/**
+ * The viewer's profile time zone, read with their own client; UTC when the
+ * profile has none. A failed read throws, so the page offers a retry instead
+ * of quietly counting in the wrong zone.
+ */
 async function profileTimeZone(): Promise<string> {
   const { userId } = await auth();
   if (!userId) return "UTC";
-  const { data } = await createUserClient().from("profiles").select("timezone").eq("clerk_user_id", userId).maybeSingle();
+  const { data, error } = await createUserClient()
+    .from("profiles")
+    .select("timezone")
+    .eq("clerk_user_id", userId)
+    .maybeSingle();
+  if (error) throw new Error(`statistics: time zone read failed: ${error.code}`);
   return viewerTimeZone(data?.timezone);
 }
 

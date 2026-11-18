@@ -22,9 +22,9 @@ export function monthChange(values: readonly number[], locale: string, label: st
   };
 }
 
-/** Sign-ups as a share of visitors, in percent; 0 with no visitors. */
-export function sharePercent(signups: number, visitors: number): number {
-  if (!(visitors > 0)) return 0;
+/** Sign-ups as a share of visitors, in percent; null with no measured visitors (not 0%). */
+export function sharePercent(signups: number, visitors: number): number | null {
+  if (!(visitors > 0)) return null;
   return Math.round((signups / visitors) * 1000) / 10;
 }
 

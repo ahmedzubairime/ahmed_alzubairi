@@ -19,11 +19,11 @@
     "firstReply": {
       "label": "Average time to first reply",
       "unit": "hours",
-      "hint": "Last {days} days. Internal, never shown to clients.",
-      "none": "No replies in the last {days} days",
+      "hint": "Requests submitted in the last {days, number} days. Internal, never shown to clients.",
+      "none": "No request submitted in the last {days, number} days has a first reply yet",
       "chart": "Average hours to first reply",
-      "chartNote": "By the month the request came in. Months with no reply are left out.",
-      "capped": "Based on the latest {count} replies."
+      "chartNote": "By the month the request came in. Months with no replied request are left out.",
+      "cappedNote": "By the month the request came in, from the latest {count, number} replied requests: older months may be missing or incomplete."
     },
     "documentRequests": {
       "label": "Document requests this month",
@@ -46,7 +46,8 @@
     "signupShare": {
       "label": "Visitors who created an account this month",
       "hint": "{signups} sign-ups of {visitors} visitors",
-      "chart": "Share of visitors who created an account (%)"
+      "chart": "Share of visitors who created an account (%)",
+      "noVisitors": "No visitors measured this month"
     }
   }
 }

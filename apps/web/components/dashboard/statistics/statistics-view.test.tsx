@@ -65,7 +65,7 @@ describe("StatisticsView", () => {
     expect(screen.getByText(en.kpis.firstReply.unit)).toBeTruthy();
     cleanup();
     await show([{ key: "firstReply", months: Array(12).fill(null), recent: null, capped: false }]);
-    expect(screen.getByText("No replies in the last 90 days")).toBeTruthy();
+    expect(screen.getByText("No request submitted in the last 90 days has a first reply yet")).toBeTruthy();
   });
 
   it("shows the sign-up share as a percent, with the approximate note", async () => {
@@ -73,6 +73,20 @@ describe("StatisticsView", () => {
     expect(screen.getByText("5%")).toBeTruthy();
     expect(screen.getByText("2 sign-ups of 40 visitors")).toBeTruthy();
     expect(screen.getAllByText(en.approximate).length).toBeGreaterThan(0);
+  });
+
+  it("says the reply chart may miss older months when the sample is capped", async () => {
+    await show([{ key: "firstReply", months: [...Array(11).fill(null), 3], recent: 3, capped: true }]);
+    expect(screen.getByText(/from the latest 5,000 replied requests/)).toBeTruthy();
+    expect(screen.queryByText(/latest 5,000/, { selector: "p" })).toBeNull();
+  });
+
+  it("shows no share, not 0%, for a month with no measured visitors, and leaves such months out of the chart", async () => {
+    await show([{ key: "signupShare", signups: [...Array(10).fill(0), 1, 1], visitors: [...Array(10).fill(0), 20, 0] }]);
+    expect(screen.getByText(en.kpis.signupShare.noVisitors)).toBeTruthy();
+    expect(screen.queryByText("0%")).toBeNull();
+    const rows = within(screen.getByRole("table")).getAllByRole("row");
+    expect(rows).toHaveLength(2); // header + the one month with visitors
   });
 
   it("speaks Arabic with Arabic month names", async () => {

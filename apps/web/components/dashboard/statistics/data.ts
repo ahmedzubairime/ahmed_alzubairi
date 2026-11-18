@@ -17,6 +17,9 @@ export const FIRST_REPLY_DAYS = 90;
 /** At most this many rows for the first-reply average. */
 export const FIRST_REPLY_ROW_CAP = 5000;
 
+/** Read in pages this size: the Data API returns at most 1,000 rows by default (`max_rows`). */
+export const FIRST_REPLY_PAGE = 1000;
+
 const DAY = 24 * 60 * 60 * 1000;
 
 export type KpiData =
@@ -83,16 +86,25 @@ function loaders(client: Client, windows: MonthWindow[], now: Date, posthog: Non
     firstReply: async (): Promise<KpiData> => {
       const recentFrom = new Date(now.getTime() - FIRST_REPLY_DAYS * DAY);
       const from = recentFrom < first ? recentFrom : first;
-      const { data, error } = await client
-        .from("consultations")
-        .select("created_at, first_reply_at")
-        .eq("kind", "consultation")
-        .not("first_reply_at", "is", null)
-        .gte("created_at", iso(from))
-        .order("created_at", { ascending: false })
-        .limit(FIRST_REPLY_ROW_CAP);
-      if (error) throw new Error(`first reply read failed: ${error.code}`);
-      const rows = (data ?? []).flatMap((row) => {
+      // Pages of 1,000, newest first, until a short page or the cap: a lower
+      // server row limit can't pass a truncated sample off as complete.
+      const data: { created_at: string; first_reply_at: string | null }[] = [];
+      for (let offset = 0; offset < FIRST_REPLY_ROW_CAP; offset += FIRST_REPLY_PAGE) {
+        const page = await client
+          .from("consultations")
+          .select("created_at, first_reply_at")
+          .eq("kind", "consultation")
+          .not("first_reply_at", "is", null)
+          .gte("created_at", iso(from))
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: true })
+          .range(offset, Math.min(offset + FIRST_REPLY_PAGE, FIRST_REPLY_ROW_CAP) - 1);
+        if (page.error) throw new Error(`first reply read failed: ${page.error.code}`);
+        const rows = page.data ?? [];
+        data.push(...rows);
+        if (rows.length < FIRST_REPLY_PAGE) break;
+      }
+      const rows = data.flatMap((row) => {
         const created = new Date(row.created_at);
         const replied = row.first_reply_at ? new Date(row.first_reply_at) : null;
         return replied ? [{ created, hours: Math.max(0, replied.getTime() - created.getTime()) / 3_600_000 }] : [];
@@ -103,7 +115,7 @@ function loaders(client: Client, windows: MonthWindow[], now: Date, posthog: Non
         key: "firstReply",
         months: windows.map((w) => average(rows.filter((row) => row.created >= w.start && row.created < w.end))),
         recent: average(rows.filter((row) => row.created >= recentFrom)),
-        capped: (data ?? []).length >= FIRST_REPLY_ROW_CAP,
+        capped: data.length >= FIRST_REPLY_ROW_CAP,
       };
     },
     documentRequests: async (): Promise<KpiData> => ({

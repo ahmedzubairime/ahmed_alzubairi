@@ -33,7 +33,7 @@ function fakeClient(answer: (query: Query) => Answer = () => ({ count: 2, error:
             .then(() => answer(query))
             .then(resolve, reject),
       };
-      for (const name of ["eq", "gte", "lt", "in", "not", "order", "limit"]) {
+      for (const name of ["eq", "gte", "lt", "in", "not", "order", "limit", "range"]) {
         builder[name] = (...args: unknown[]) => (query.filters.push([name, ...args]), builder);
       }
       return builder;
@@ -195,6 +195,29 @@ describe("loadStatistics", () => {
     expect(months[0]).toBeNull();
     const read = queries.find((q) => q.select[0] === "created_at, first_reply_at")!;
     expect(read.filters).toContainEqual(["not", "first_reply_at", "is", null]);
-    expect(read.filters).toContainEqual(["limit", 5000]);
+    expect(read.filters).toContainEqual(["range", 0, 999]);
+  });
+
+  it("reads the first replies in pages of 1,000 so a server row limit can't truncate them, up to 5,000", async () => {
+    const row = { created_at: "2026-11-02T00:00:00Z", first_reply_at: "2026-11-02T02:00:00Z" };
+    const pageOf = (size: number) => Array.from({ length: size }, () => row);
+    // Two full pages, then a short one: three reads, not capped.
+    let { client, queries } = fakeClient((query) => {
+      const range = query.filters.find((filter) => filter[0] === "range")!;
+      return { data: pageOf(range[1] === 2000 ? 10 : 1000), error: null };
+    });
+    let { kpis } = await loadStatistics(new Set([PERMISSIONS.CONSULTATIONS_VIEW_ALL]), "UTC", { client, now: NOW, posthog: posthog() });
+    expect(queries.filter((q) => q.select[0] === "created_at, first_reply_at").map((q) => q.filters.find((f) => f[0] === "range"))).toEqual([
+      ["range", 0, 999],
+      ["range", 1000, 1999],
+      ["range", 2000, 2999],
+    ]);
+    expect(kpis.find((kpi) => kpi.key === "firstReply")).toMatchObject({ capped: false });
+
+    // Full pages all the way: stops at 5,000 and says so.
+    ({ client, queries } = fakeClient(() => ({ data: pageOf(1000), error: null })));
+    ({ kpis } = await loadStatistics(new Set([PERMISSIONS.CONSULTATIONS_VIEW_ALL]), "UTC", { client, now: NOW, posthog: posthog() }));
+    expect(queries.filter((q) => q.select[0] === "created_at, first_reply_at")).toHaveLength(5);
+    expect(kpis.find((kpi) => kpi.key === "firstReply")).toMatchObject({ capped: true });
   });
 });

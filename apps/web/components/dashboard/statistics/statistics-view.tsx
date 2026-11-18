@@ -53,17 +53,15 @@ export async function StatisticsView({ statistics, locale }: { statistics: Stati
               label={label}
               value={kpi.recent === null ? undefined : number.format(kpi.recent)}
               unit={kpi.recent === null ? undefined : t("kpis.firstReply.unit")}
-              hint={
-                kpi.recent === null
-                  ? t("kpis.firstReply.none", { days: FIRST_REPLY_DAYS })
-                  : `${t("kpis.firstReply.hint", { days: FIRST_REPLY_DAYS })}${kpi.capped ? ` ${t("kpis.firstReply.capped", { count: FIRST_REPLY_ROW_CAP })}` : ""}`
-              }
+              hint={t("kpis.firstReply.hint", { days: FIRST_REPLY_DAYS })}
               state={kpi.recent === null ? "unavailable" : "ready"}
               unavailableLabel={t("kpis.firstReply.none", { days: FIRST_REPLY_DAYS })}
             />
           ),
           chart: chart(t("kpis.firstReply.chart"), kpi.months.map((value) => (value === null ? null : Math.round(value * 10) / 10)), {
-            description: t("kpis.firstReply.chartNote"),
+            description: kpi.capped
+              ? t("kpis.firstReply.cappedNote", { count: FIRST_REPLY_ROW_CAP })
+              : t("kpis.firstReply.chartNote"),
             valueFormat: { maximumFractionDigits: 1 },
             keepZeros: true,
           }),
@@ -82,20 +80,31 @@ export async function StatisticsView({ statistics, locale }: { statistics: Stati
         };
       case "signupShare": {
         const shares = kpi.signups.map((signups, index) => sharePercent(signups, kpi.visitors[index] ?? 0));
-        const { current } = lastTwo(shares);
+        const current = shares.at(-1) ?? null;
         return {
           key: kpi.key,
           tile: (
             <StatTile
               label={label}
-              value={new Intl.NumberFormat(locale, { style: "percent", maximumFractionDigits: 1 }).format(current / 100)}
+              state={current === null ? "unavailable" : "ready"}
+              unavailableLabel={t("kpis.signupShare.noVisitors")}
+              value={
+                current === null
+                  ? undefined
+                  : new Intl.NumberFormat(locale, { style: "percent", maximumFractionDigits: 1 }).format(current / 100)
+              }
               hint={t("kpis.signupShare.hint", {
                 signups: number.format(lastTwo(kpi.signups).current),
                 visitors: number.format(lastTwo(kpi.visitors).current),
               })}
             />
           ),
-          chart: chart(t("kpis.signupShare.chart"), shares, { description: t("approximate"), valueFormat: { maximumFractionDigits: 1 } }),
+          // Months with no measured visitors are left out, not drawn as 0%.
+          chart: chart(t("kpis.signupShare.chart"), shares, {
+            description: t("approximate"),
+            valueFormat: { maximumFractionDigits: 1 },
+            keepZeros: true,
+          }),
         };
       }
       default:

@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   loadStatistics: vi.fn(),
   auth: vi.fn(),
   timezone: null as string | null,
+  readError: null as { code: string } | null,
 }));
 
 vi.mock("@/lib/auth/gates", () => ({ requireTeamMember: mocks.requireTeamMember }));
@@ -22,7 +23,7 @@ vi.mock("@/components/dashboard/statistics/data", async () => ({
 vi.mock("@/lib/supabase/user", () => ({
   createUserClient: () => ({
     from: () => ({
-      select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { timezone: mocks.timezone }, error: null }) }) }),
+      select: () => ({ eq: () => ({ maybeSingle: async () => (mocks.readError ? { data: null, error: mocks.readError } : { data: { timezone: mocks.timezone }, error: null }) }) }),
     }),
   }),
 }));
@@ -49,6 +50,7 @@ beforeEach(() => {
   mocks.loadStatistics.mockReset().mockResolvedValue({ windows: [], kpis: [] });
   mocks.auth.mockReset().mockResolvedValue({ userId: "user_1" });
   mocks.timezone = "Asia/Riyadh";
+  mocks.readError = null;
 });
 
 describe("/dashboard/statistics", () => {
@@ -92,5 +94,12 @@ describe("/dashboard/statistics", () => {
     const page = (await StatisticsPage({ params })) as ReactElement;
     const header = elements(page).find((element) => element.type === PageHeader)!;
     expect((header.props as { intro: string }).intro).toBe('intro {"timeZone":"UTC"}');
+  });
+
+  it("throws for a retry, not a silent UTC, when the time zone can't be read", async () => {
+    mocks.grantedPermissions.mockResolvedValue(new Set([PERMISSIONS.CONTENT_MANAGE]));
+    mocks.readError = { code: "PGRST301" };
+    await expect(StatisticsPage({ params })).rejects.toThrow("time zone read failed");
+    expect(mocks.loadStatistics).not.toHaveBeenCalled();
   });
 });

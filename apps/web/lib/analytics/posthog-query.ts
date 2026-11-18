@@ -39,12 +39,14 @@ export function downloadsQuery(timeZone: string, start: Date): string {
 }
 
 /**
- * Per month: `signed_up` events, and unique visitors (distinct ids with a
- * pageview). Without cookie consent a visitor's id lives for one visit, so
+ * Per month: unique visitors (distinct ids with a pageview), and how many
+ * of them signed up that month. Without cookie consent a visitor's id lives for one visit, so
  * visitors are approximate (the page says so).
  */
 export function signupShareQuery(timeZone: string, start: Date): string {
-  return `SELECT ${month(timeZone)} AS month, countIf(event = 'signed_up') AS signups, uniqIf(distinct_id, event = '$pageview') AS visitors FROM events WHERE event IN ('$pageview', 'signed_up') AND timestamp >= toDateTime('${utc(start)}', 'UTC') GROUP BY month ORDER BY month`;
+  // Per month and visitor first, so sign-ups count only visitors who also
+  // viewed a page that month: the share can't pass 100%.
+  return `SELECT month, countIf(signed > 0 AND viewed > 0) AS signups, countIf(viewed > 0) AS visitors FROM (SELECT ${month(timeZone)} AS month, distinct_id, countIf(event = 'signed_up') AS signed, countIf(event = '$pageview') AS viewed FROM events WHERE event IN ('$pageview', 'signed_up') AND timestamp >= toDateTime('${utc(start)}', 'UTC') GROUP BY month, distinct_id) GROUP BY month ORDER BY month`;
 }
 
 export type QueryDeps = { env?: QueryEnv | null; fetcher?: typeof fetch };
@@ -64,12 +66,23 @@ export async function runHogQL(query: string, { env = posthogQueryEnv(), fetcher
   return body.results as unknown[][];
 }
 
-/** Rows keyed by their `YYYY-MM` first column, as numbers per month key. Missing months are 0. */
+/** A count cell: a whole number, or a numeric string of one. Anything else is invalid. */
+function count(cell: unknown): number {
+  const value = typeof cell === "number" ? cell : typeof cell === "string" && /^\d+$/.test(cell) ? Number(cell) : NaN;
+  if (!Number.isInteger(value) || value < 0) throw new Error("posthog query: bad count");
+  return value;
+}
+
+/**
+ * Rows keyed by their `YYYY-MM` first column, as numbers per month key. A
+ * month with no row is 0; a row with a bad month or count throws, so the
+ * tile shows unavailable instead of a wrong zero.
+ */
 export function byMonth(rows: unknown[][], keys: readonly string[], column: number): number[] {
   const found = new Map<string, number>();
   for (const row of rows) {
-    const value = Number(row[column]);
-    if (typeof row[0] === "string" && Number.isFinite(value)) found.set(row[0], value);
+    if (typeof row[0] !== "string" || !/^\d{4}-\d{2}$/.test(row[0])) throw new Error("posthog query: bad month");
+    found.set(row[0], count(row[column]));
   }
   return keys.map((key) => found.get(key) ?? 0);
 }

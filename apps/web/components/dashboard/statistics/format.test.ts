@@ -11,10 +11,11 @@ describe("monthChange", () => {
 });
 
 describe("sharePercent", () => {
-  it("is sign-ups over visitors, to one decimal, 0 with no visitors", () => {
+  it("is sign-ups over visitors, to one decimal; 0% only when visitors were measured", () => {
     expect(sharePercent(1, 3)).toBe(33.3);
-    expect(sharePercent(0, 0)).toBe(0);
-    expect(sharePercent(5, 0)).toBe(0);
+    expect(sharePercent(0, 40)).toBe(0);
+    expect(sharePercent(0, 0)).toBeNull();
+    expect(sharePercent(1, 0)).toBeNull();
   });
 });
 

@@ -11,9 +11,17 @@ export type MonthWindow = {
   end: Date;
 };
 
-/** The viewer's zone, or UTC when it is unset or not a real IANA name. */
+/**
+ * The viewer's zone in its canonical spelling (Intl accepts "asia/riyadh",
+ * PostHog's HogQL doesn't), or UTC when it is unset or not a real IANA name.
+ */
 export function viewerTimeZone(value: string | null | undefined): string {
-  return value && isIanaTimeZone(value) ? value : "UTC";
+  if (!value || !isIanaTimeZone(value)) return "UTC";
+  try {
+    return new Intl.DateTimeFormat("en", { timeZone: value }).resolvedOptions().timeZone;
+  } catch {
+    return "UTC";
+  }
 }
 
 function parts(instant: Date, timeZone: string) {

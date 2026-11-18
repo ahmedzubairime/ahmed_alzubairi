@@ -25,8 +25,9 @@ describe("queries", () => {
 
   it("count sign-ups and unique visitors per month", () => {
     const query = signupShareQuery("UTC", START);
-    expect(query).toContain("countIf(event = 'signed_up') AS signups");
-    expect(query).toContain("uniqIf(distinct_id, event = '$pageview') AS visitors");
+    // Per visitor first, so sign-ups are a subset of the visitors (never over 100%).
+    expect(query).toContain("countIf(signed > 0 AND viewed > 0) AS signups, countIf(viewed > 0) AS visitors");
+    expect(query).toContain("GROUP BY month, distinct_id");
   });
 
   it("refuse a zone or date that could change the query", () => {
@@ -63,6 +64,16 @@ describe("runHogQL", () => {
 
 describe("byMonth", () => {
   it("lines rows up with the months, 0 where a month has none", () => {
-    expect(byMonth([["2026-10", 4, 10], ["2026-11", "2", 8], [null, 9]], ["2026-09", "2026-10", "2026-11"], 1)).toEqual([0, 4, 2]);
+    expect(byMonth([["2026-10", 4, 10], ["2026-11", "2", 8], ["2026-08", 0, 1]], ["2026-09", "2026-10", "2026-11"], 1)).toEqual([0, 4, 2]);
+  });
+
+  it.each([
+    ["a null count", [["2026-11", null]]],
+    ["a negative count", [["2026-11", -1]]],
+    ["a fraction", [["2026-11", 1.5]]],
+    ["text", [["2026-11", "many"]]],
+    ["a bad month", [[null, 3]]],
+  ])("throws on %s instead of showing a zero", (_label, rows) => {
+    expect(() => byMonth(rows as unknown[][], ["2026-11"], 1)).toThrow();
   });
 });

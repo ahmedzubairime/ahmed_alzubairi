@@ -58,6 +58,11 @@ describe("viewerTimeZone", () => {
     expect(viewerTimeZone("Mars/Base")).toBe("UTC");
     expect(viewerTimeZone("'; DROP")).toBe("UTC");
   });
+
+  it("returns the canonical spelling PostHog's HogQL needs", () => {
+    expect(viewerTimeZone("asia/riyadh")).toBe("Asia/Riyadh");
+    expect(viewerTimeZone("AMERICA/NEW_YORK")).toBe("America/New_York");
+  });
 });
 
 describe("monthLabel", () => {
