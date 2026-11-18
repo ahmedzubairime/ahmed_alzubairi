@@ -144,6 +144,15 @@ describe("metaDescription", () => {
     expect(result.endsWith("word…")).toBe(true);
   });
 
+  it("keeps the last whole word, even early in the text", () => {
+    expect(metaDescription(`Case notes ${"a".repeat(170)}`)).toBe("Case notes…");
+  });
+
+  it("keeps an emoji with its modifier, or drops both", () => {
+    const result = metaDescription(`${"a".repeat(158)}👍🏽${"b".repeat(20)}`)!;
+    expect(result).toBe(`${"a".repeat(158)}…`);
+  });
+
   it("never splits an emoji when cutting", () => {
     const result = metaDescription(`${"a".repeat(158)}😀${"b".repeat(20)}`)!;
     expect(result).toBe(`${"a".repeat(158)}😀…`);

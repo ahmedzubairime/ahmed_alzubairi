@@ -20,9 +20,10 @@ type Props = { params: Promise<{ locale: string }>; searchParams: Promise<Search
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const { locale } = await params;
   if (!hasLocale(routing.locales, locale)) return {};
-  // Page 2 onward is its own canonical page.
-  const { page } = parseBlogQuery(await searchParams);
-  return staticPageMetadata(locale, "blog", undefined, { page });
+  // Page 2 onward is its own canonical page. Search and category results are
+  // views of the same posts: kept out of the index, the full list stays in it.
+  const { page, q, category } = parseBlogQuery(await searchParams);
+  return staticPageMetadata(locale, "blog", undefined, { page, noindex: Boolean(q || category) });
 }
 
 /**

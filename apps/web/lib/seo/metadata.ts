@@ -133,12 +133,17 @@ export const DESCRIPTION_MAX = 160;
 export function metaDescription(text: string | null | undefined): string | undefined {
   const folded = text?.replace(/\s+/g, " ").trim();
   if (!folded) return undefined;
-  // Counted in code points, so a cut never splits an emoji's surrogate pair.
-  const chars = Array.from(folded);
-  if (chars.length <= DESCRIPTION_MAX) return folded;
-  const cut = chars.slice(0, DESCRIPTION_MAX - 1).join("");
+  if (Array.from(folded).length <= DESCRIPTION_MAX) return folded;
+  // Cut on whole graphemes, so an emoji and its modifiers stay together, and
+  // within the code-point budget once the ellipsis is added.
+  let cut = "";
+  for (const { segment } of new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(folded)) {
+    if (Array.from(cut + segment).length > DESCRIPTION_MAX - 1) break;
+    cut += segment;
+  }
+  // The last word that fits; a hard cut only when there's no space at all.
   const space = cut.lastIndexOf(" ");
-  return `${(space > DESCRIPTION_MAX / 2 ? cut.slice(0, space) : cut).trimEnd()}…`;
+  return `${(space > 0 ? cut.slice(0, space) : cut).trimEnd()}…`;
 }
 
 /** `<meta name="robots" content="noindex, nofollow">`. */

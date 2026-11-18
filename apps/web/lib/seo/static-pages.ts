@@ -14,7 +14,7 @@ export async function staticPageMetadata(
   locale: Locale,
   key: StaticPageKey,
   languages: readonly Locale[] = LOCALES,
-  { page = 1 }: { page?: number } = {},
+  { page = 1, noindex = false }: { page?: number; noindex?: boolean } = {},
 ): Promise<Metadata> {
   const t = await getTranslations({ locale, namespace: "Seo" });
   // A later page of a listing is its own page: its canonical keeps the page
@@ -26,6 +26,7 @@ export async function staticPageMetadata(
     title: t(`pages.${key}.title`),
     description: t(`pages.${key}.description`),
     languages: later ? [locale] : languages,
+    noindex,
     image: await defaultShareImage(locale),
   });
 }

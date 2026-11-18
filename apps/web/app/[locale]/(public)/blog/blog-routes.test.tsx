@@ -162,6 +162,15 @@ describe("/blog", () => {
     expect((await list.generateMetadata(first)).alternates?.canonical).toBe("https://site.example/en/blog");
   });
 
+  it("keeps search and category results out of the index", async () => {
+    for (const searchParams of [{ q: "governance" }, { category: "governance" }]) {
+      const props = { params: Promise.resolve({ locale: "en" }), searchParams: Promise.resolve(searchParams) };
+      expect((await list.generateMetadata(props)).robots).toEqual({ index: false, follow: false });
+    }
+    const plain = { params: Promise.resolve({ locale: "en" }), searchParams: Promise.resolve({}) };
+    expect((await list.generateMetadata(plain)).robots).toBeUndefined();
+  });
+
   it("falls back to the article's text when it has no excerpt", async () => {
     mocks.getPost.mockResolvedValue(
       post({
