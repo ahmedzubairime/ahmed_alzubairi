@@ -126,7 +126,9 @@ export async function StatisticsView({ statistics, locale }: { statistics: Stati
   const tiles = statistics.kpis.map(build);
   const charts = tiles.filter((item) => item.chart);
   // The note qualifies visitor numbers, so only when they are shown.
-  const visitors = statistics.kpis.some((kpi) => kpi.key === "signupShare" && !("unavailable" in kpi));
+  const visitors = statistics.kpis.some(
+    (kpi) => kpi.key === "signupShare" && !("unavailable" in kpi) && kpi.visitors.some((count) => count > 0),
+  );
 
   return (
     <div className="space-y-6">

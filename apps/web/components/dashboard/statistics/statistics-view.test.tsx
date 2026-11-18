@@ -75,6 +75,18 @@ describe("StatisticsView", () => {
     expect(screen.getAllByText(en.approximate).length).toBeGreaterThan(0);
   });
 
+  it("shows the approximate note under the tiles only when some month has visitors", async () => {
+    const outsideCharts = () => screen.queryAllByText(en.approximate).filter((element) => !element.closest("figure"));
+    await show([{ key: "signupShare", signups: months(2), visitors: months(40) }]);
+    expect(outsideCharts()).toHaveLength(1);
+    cleanup();
+    await show([{ key: "signupShare", signups: Array(12).fill(0), visitors: Array(12).fill(0) }]);
+    expect(outsideCharts()).toHaveLength(0);
+    cleanup();
+    await show([{ key: "signupShare", unavailable: true }]);
+    expect(outsideCharts()).toHaveLength(0);
+  });
+
   it("says the reply chart may miss older months when the sample is capped", async () => {
     await show([{ key: "firstReply", months: [...Array(11).fill(null), 3], recent: 3, capped: true }]);
     expect(screen.getByText(/from the latest 5,000 replied requests/)).toBeTruthy();

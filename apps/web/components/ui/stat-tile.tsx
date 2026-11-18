@@ -59,8 +59,23 @@ function ChangeArrow({ direction }: { direction: StatChange["direction"] }) {
  * the tile keeps its label and says so, instead of showing a wrong zero.
  *
  * With `href` the whole tile is one link, named by its label and value, for
- * a number that leads to its list (the dashboard summary).
+ * a number that leads to its list (the dashboard summary). Only a ready tile
+ * is a link: a loading or unavailable one has no number to name it. A linked
+ * tile's hint is plain text, so no link ends up inside the tile's link.
  */
+type StatTileLink =
+  | {
+      /** Makes the whole (ready) tile a link to this page. */
+      href: string;
+      /** Plain text only: the tile is already a link. */
+      hint?: string;
+    }
+  | {
+      href?: undefined;
+      /** A short line under the value, e.g. what the KPI counts. */
+      hint?: ReactNode;
+    };
+
 export function StatTile({
   label,
   value,
@@ -72,22 +87,18 @@ export function StatTile({
   unavailableLabel,
   href,
   className,
-}: {
+}: StatTileLink & {
   label: string;
   /** The formatted value, e.g. "1,284". Required when `state` is `ready`. */
   value?: string;
   /** Shown after the value in smaller text, e.g. "days". */
   unit?: string;
-  /** A short line under the value, e.g. what the KPI counts. */
-  hint?: ReactNode;
   change?: StatChange;
   state?: StatTileState;
   /** Read by screen readers while loading. Required with `loading`. */
   loadingLabel?: string;
   /** Shown in place of the value, e.g. "Not available right now". Required with `unavailable`. */
   unavailableLabel?: string;
-  /** Makes the whole tile a link to this page. */
-  href?: string;
   className?: string;
 }) {
   // Full height, so tiles in one grid row line up.
@@ -144,7 +155,7 @@ export function StatTile({
     </>
   );
 
-  if (href) {
+  if (href && state === "ready") {
     return (
       <Link
         href={href}

@@ -64,6 +64,12 @@ describe("StatTile as a link", () => {
     expect(link.getAttribute("href")).toBe("/dashboard/consultations");
   });
 
+  it("is no link while loading or unavailable", () => {
+    render(<StatTile href="/dashboard" label="" state="loading" />);
+    render(<StatTile href="/dashboard" label="Open consultations" state="unavailable" unavailableLabel="Not available" />);
+    expect(screen.queryByRole("link")).toBeNull();
+  });
+
   it("keeps a label line while loading without a label", () => {
     const { container } = render(<StatTile label="" state="loading" />);
     expect(container.querySelector("p")).toBeNull();
