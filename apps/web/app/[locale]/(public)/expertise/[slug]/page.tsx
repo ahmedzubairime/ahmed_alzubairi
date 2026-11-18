@@ -8,6 +8,8 @@ import { MAIN_CONTENT_ID } from "@/components/skip-link";
 import { otherLocale, routing } from "@/i18n/routing";
 import { getExpertiseArea, getProjects, getServices } from "@/lib/content";
 import { routeSlug, staticSlugs } from "@/components/public/static-slugs";
+import { metaDescription, pageMetadata } from "@/lib/seo";
+import { defaultShareImage } from "@/lib/seo/static-pages";
 
 type Props = { params: Promise<{ locale: string; slug: string }> };
 
@@ -24,7 +26,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!hasLocale(routing.locales, locale)) return {};
   await connection();
   const area = await getExpertiseArea(routeSlug(slug), locale);
-  return area ? { title: area.title } : {};
+  if (!area) return {};
+  return pageMetadata({
+    locale,
+    path: `/expertise/${encodeURIComponent(area.slug)}`,
+    title: area.title,
+    description: metaDescription(area.summary),
+    image: await defaultShareImage(locale),
+    languages: area.availableIn,
+  });
 }
 
 export default async function ExpertiseArea({ params }: Props) {

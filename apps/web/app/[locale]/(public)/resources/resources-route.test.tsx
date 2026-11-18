@@ -67,14 +67,13 @@ afterEach(cleanup);
 
 describe("/resources", () => {
   it("has a title and description per language", async () => {
-    expect(await page.generateMetadata(props("ar"))).toEqual({
-      title: "ar:Resources.title",
-      description: "ar:Resources.description",
-    });
-    expect(await page.generateMetadata(props("en"))).toEqual({
-      title: "en:Resources.title",
-      description: "en:Resources.description",
-    });
+    for (const locale of ["ar", "en"]) {
+      const meta = await page.generateMetadata(props(locale));
+      expect(meta.title).toEqual({ absolute: `${locale}:Seo.pages.resources.title | Ahmed Alzubairi` });
+      expect(meta.description).toBe(`${locale}:Seo.pages.resources.description`);
+      // A listing exists in both languages: both are alternates.
+      expect(Object.keys(meta.alternates?.languages ?? {})).toEqual(["ar", "en", "x-default"]);
+    }
     expect(await page.generateMetadata(props("fr"))).toEqual({});
   });
 

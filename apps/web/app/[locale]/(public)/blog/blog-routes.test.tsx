@@ -100,28 +100,42 @@ describe("/blog/[slug]", () => {
     expect(mocks.article).not.toHaveBeenCalled();
   });
 
-  it("builds metadata from the post, with the canonical URL and both languages", async () => {
+  it("links a post's two languages by their own slugs, with x-default → Arabic", async () => {
     mocks.getPost.mockResolvedValue(post());
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://site.example");
-    expect(await article.generateMetadata(params("en"))).toEqual({
-      title: "First post",
-      description: "An excerpt",
-      alternates: {
-        canonical: "https://site.example/en/blog/first-post",
-        languages: {
-          ar: "https://site.example/ar/blog/%D9%85%D9%82%D8%A7%D9%84",
-          en: "https://site.example/en/blog/first-post",
-        },
-      },
-      openGraph: {
-        type: "article",
-        title: "First post",
-        description: "An excerpt",
-        url: "https://site.example/en/blog/first-post",
-        publishedTime: "2026-03-01T00:00:00Z",
-        images: ["https://cdn.example/c.jpg"],
+    const meta = await article.generateMetadata(params("en"));
+    expect(meta.title).toEqual({ absolute: "First post | Ahmed Alzubairi" });
+    expect(meta.description).toBe("An excerpt");
+    expect(meta.alternates).toEqual({
+      canonical: "https://site.example/en/blog/first-post",
+      languages: {
+        ar: "https://site.example/ar/blog/%D9%85%D9%82%D8%A7%D9%84",
+        en: "https://site.example/en/blog/first-post",
+        "x-default": "https://site.example/ar/blog/%D9%85%D9%82%D8%A7%D9%84",
       },
     });
+    expect(meta.openGraph).toMatchObject({
+      type: "article",
+      url: "https://site.example/en/blog/first-post",
+      publishedTime: "2026-03-01T00:00:00Z",
+      images: [{ url: "https://cdn.example/c.jpg" }],
+    });
+    expect(meta.robots).toBeUndefined();
+  });
+
+  it("gives a single-language post no alternate and keeps it indexable", async () => {
+    mocks.getPost.mockResolvedValue(
+      post({ slug: "مقال", availableIn: ["ar"], slugs: { ar: "مقال" }, coverUrl: null }),
+    );
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://site.example");
+    const meta = await article.generateMetadata(params("ar", "مقال"));
+    expect(meta.alternates).toEqual({
+      canonical: "https://site.example/ar/blog/%D9%85%D9%82%D8%A7%D9%84",
+    });
+    expect(JSON.stringify(meta)).not.toContain("hreflang");
+    expect(meta.robots).toBeUndefined();
+    // No cover: the locale's default share image.
+    expect(meta.openGraph).toMatchObject({ images: [{ url: "/ar/opengraph-image/default" }] });
   });
 
   it("has empty metadata for a missing post", async () => {
@@ -133,7 +147,38 @@ describe("/blog/[slug]", () => {
 describe("/blog", () => {
   it("has a title and description per language", async () => {
     const props = { params: Promise.resolve({ locale: "ar" }), searchParams: Promise.resolve({}) };
-    expect(await list.generateMetadata(props)).toEqual({ title: "ar:title", description: "ar:description" });
+    const meta = await list.generateMetadata(props);
+    expect(meta.title).toEqual({ absolute: "ar:pages.blog.title | Ahmed Alzubairi" });
+    expect(meta.description).toBe("ar:pages.blog.description");
+  });
+
+  it("gives a later page its own canonical, with no alternates", async () => {
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://site.example");
+    const props = { params: Promise.resolve({ locale: "en" }), searchParams: Promise.resolve({ page: "2" }) };
+    expect((await list.generateMetadata(props)).alternates).toEqual({
+      canonical: "https://site.example/en/blog?page=2",
+    });
+    const first = { params: Promise.resolve({ locale: "en" }), searchParams: Promise.resolve({ page: "1" }) };
+    expect((await list.generateMetadata(first)).alternates?.canonical).toBe("https://site.example/en/blog");
+  });
+
+  it("keeps search and category results out of the index", async () => {
+    for (const searchParams of [{ q: "governance" }, { category: "governance" }]) {
+      const props = { params: Promise.resolve({ locale: "en" }), searchParams: Promise.resolve(searchParams) };
+      expect((await list.generateMetadata(props)).robots).toEqual({ index: false, follow: false });
+    }
+    const plain = { params: Promise.resolve({ locale: "en" }), searchParams: Promise.resolve({}) };
+    expect((await list.generateMetadata(plain)).robots).toBeUndefined();
+  });
+
+  it("falls back to the article's text when it has no excerpt", async () => {
+    mocks.getPost.mockResolvedValue(
+      post({
+        excerpt: null,
+        body: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Opening words." }] }] },
+      }),
+    );
+    expect((await article.generateMetadata(params("en"))).description).toBe("Opening words.");
   });
 
   it("is not found for an unknown locale", async () => {

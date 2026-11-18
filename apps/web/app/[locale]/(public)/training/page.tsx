@@ -13,6 +13,7 @@ import { parseTypeFilter } from "@/components/training/data";
 import { CUSTOM_TRAINING_ID } from "@/components/training/paths";
 import { routing } from "@/i18n/routing";
 import { getCourses } from "@/lib/content/courses";
+import { staticPageMetadata } from "@/lib/seo/static-pages";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 type Props = { params: Promise<{ locale: string }>; searchParams: Promise<SearchParams> };
@@ -20,8 +21,7 @@ type Props = { params: Promise<{ locale: string }>; searchParams: Promise<Search
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
   if (!hasLocale(routing.locales, locale)) return {};
-  const t = await getTranslations({ locale, namespace: "Training" });
-  return { title: t("title"), description: t("description") };
+  return staticPageMetadata(locale, "training");
 }
 
 /**

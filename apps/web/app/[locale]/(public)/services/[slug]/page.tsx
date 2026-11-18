@@ -9,6 +9,8 @@ import { LanguageFallback } from "@/components/language-switch";
 import { MAIN_CONTENT_ID } from "@/components/skip-link";
 import { otherLocale, routing } from "@/i18n/routing";
 import { getExpertiseAreas, getFaqs, getService } from "@/lib/content";
+import { metaDescription, pageMetadata } from "@/lib/seo";
+import { defaultShareImage } from "@/lib/seo/static-pages";
 
 type Props = { params: Promise<{ locale: string; slug: string }> };
 
@@ -25,7 +27,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!hasLocale(routing.locales, locale)) return {};
   await connection();
   const service = await getService(routeSlug(slug), locale);
-  return service ? { title: service.title } : {};
+  if (!service) return {};
+  return pageMetadata({
+    locale,
+    path: `/services/${encodeURIComponent(service.slug)}`,
+    title: service.title,
+    description: metaDescription(service.summary),
+    image: await defaultShareImage(locale),
+    languages: service.availableIn,
+  });
 }
 
 export default async function ServicePage({ params }: Props) {

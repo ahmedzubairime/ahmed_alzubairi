@@ -8,6 +8,8 @@ import { routeSlug, staticSlugs } from "@/components/public/static-slugs";
 import { MAIN_CONTENT_ID } from "@/components/skip-link";
 import { otherLocale, routing } from "@/i18n/routing";
 import { getPost, getRelatedPosts } from "@/lib/content/posts";
+import { docText, metaDescription, pageMetadata } from "@/lib/seo";
+import { defaultShareImage } from "@/lib/seo/static-pages";
 
 type Props = { params: Promise<{ locale: string; slug: string }> };
 
@@ -27,27 +29,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   await connection();
   const post = await getPost(routeSlug(slug), locale);
   if (!post) return {};
-
-  const canonical = canonicalUrl(siteUrl(), locale, articlePath(post.slug));
-  const languages = Object.fromEntries(
-    Object.entries(post.slugs).flatMap(([language, other]) => {
-      const url = canonicalUrl(siteUrl(), language, articlePath(other));
-      return url ? [[language, url]] : [];
-    }),
+  // Each language has its own slug; a language without one is no alternate.
+  const paths = Object.fromEntries(
+    Object.entries(post.slugs).map(([language, other]) => [language, articlePath(other)]),
   );
-  return {
+  return pageMetadata({
+    locale,
+    path: paths,
     title: post.title,
-    ...(post.excerpt ? { description: post.excerpt } : {}),
-    ...(canonical ? { alternates: { canonical, languages } } : {}),
-    openGraph: {
-      type: "article",
-      title: post.title,
-      ...(post.excerpt ? { description: post.excerpt } : {}),
-      ...(canonical ? { url: canonical } : {}),
-      ...(post.publishedAt ? { publishedTime: post.publishedAt } : {}),
-      ...(post.coverUrl ? { images: [post.coverUrl] } : {}),
-    },
-  };
+    // No excerpt: the article's own opening words, not the site's description.
+    description: metaDescription(post.excerpt) ?? metaDescription(docText(post.body)),
+    languages: post.availableIn,
+    type: "article",
+    publishedTime: post.publishedAt,
+    image: post.coverUrl ? { url: post.coverUrl } : await defaultShareImage(locale),
+  });
 }
 
 export default async function Article({ params }: Props) {

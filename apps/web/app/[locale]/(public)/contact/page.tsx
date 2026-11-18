@@ -8,14 +8,14 @@ import { CONTAINER, PageHero } from "@/components/public/projects";
 import { MAIN_CONTENT_ID } from "@/components/skip-link";
 import { routing } from "@/i18n/routing";
 import { getSiteSettings } from "@/lib/content";
+import { staticPageMetadata } from "@/lib/seo/static-pages";
 
 type Props = { params: Promise<{ locale: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
   if (!hasLocale(routing.locales, locale)) return {};
-  const t = await getTranslations({ locale, namespace: "Contact" });
-  return { title: t("title") };
+  return staticPageMetadata(locale, "contact");
 }
 
 /** §6.14: direct channels and a form. No account needed, and no response-time promise. */

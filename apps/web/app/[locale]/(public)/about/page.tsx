@@ -6,6 +6,7 @@ import { AboutPage } from "@/components/public/pages";
 import { MAIN_CONTENT_ID } from "@/components/skip-link";
 import { routing } from "@/i18n/routing";
 import { getPage, getSiteSettings, getTimeline } from "@/lib/content";
+import { staticPageMetadata } from "@/lib/seo/static-pages";
 
 type Props = { params: Promise<{ locale: string }> };
 
@@ -14,7 +15,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!hasLocale(routing.locales, locale)) return {};
   await connection();
   const page = await getPage("about", locale);
-  return page ? { title: page.title } : {};
+  // hreflang only for the languages the page's content is published in.
+  return page ? staticPageMetadata(locale, "about", page.availableIn) : {};
 }
 
 export default async function About({ params }: Props) {

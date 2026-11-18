@@ -12,15 +12,18 @@ import { Skeleton } from "@/components/ui";
 import { routing } from "@/i18n/routing";
 import { getExpertiseAreas } from "@/lib/content";
 import { getPosts } from "@/lib/content/posts";
+import { staticPageMetadata } from "@/lib/seo/static-pages";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 type Props = { params: Promise<{ locale: string }>; searchParams: Promise<SearchParams> };
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const { locale } = await params;
   if (!hasLocale(routing.locales, locale)) return {};
-  const t = await getTranslations({ locale, namespace: "Blog" });
-  return { title: t("title"), description: t("description") };
+  // Page 2 onward is its own canonical page. Search and category results are
+  // views of the same posts: kept out of the index, the full list stays in it.
+  const { page, q, category } = parseBlogQuery(await searchParams);
+  return staticPageMetadata(locale, "blog", undefined, { page, noindex: Boolean(q || category) });
 }
 
 /**

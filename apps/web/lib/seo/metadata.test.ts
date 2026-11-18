@@ -1,6 +1,6 @@
 import { SITE_NAME } from "@repo/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { localizedUrl, pageMetadata, pageTitle } from "./metadata";
+import { DESCRIPTION_MAX, localizedUrl, metaDescription, pageMetadata, pageTitle } from "./metadata";
 import { siteUrl } from "./site-url";
 
 beforeEach(() => {
@@ -91,5 +91,83 @@ describe("pageMetadata", () => {
       index: false,
       follow: false,
     });
+  });
+
+  it("treats a page outside its own languages as a fallback: noindex, no alternates", () => {
+    // An English page showing content that only exists in Arabic.
+    const meta = pageMetadata({ locale: "en", path: "/services/x", languages: ["ar"] });
+    expect(meta.robots).toEqual({ index: false, follow: false });
+    expect(meta.alternates).toEqual({ canonical: "https://site.example/en/services/x" });
+    expect(meta.openGraph).toMatchObject({ alternateLocale: [] });
+  });
+
+  it("uses each language's own path, and drops a language without one", () => {
+    const both = pageMetadata({
+      locale: "en",
+      path: { ar: "/blog/arabic-slug", en: "/blog/english-slug" },
+      languages: ["ar", "en"],
+      type: "article",
+      publishedTime: "2026-01-01T00:00:00Z",
+    });
+    expect(both.alternates).toEqual({
+      canonical: "https://site.example/en/blog/english-slug",
+      languages: {
+        ar: "https://site.example/ar/blog/arabic-slug",
+        en: "https://site.example/en/blog/english-slug",
+        "x-default": "https://site.example/ar/blog/arabic-slug",
+      },
+    });
+    expect(both.openGraph).toMatchObject({ type: "article", publishedTime: "2026-01-01T00:00:00Z" });
+
+    // The English page of a post that has only an Arabic slug: a fallback, not a crash.
+    const missing = pageMetadata({ locale: "en", path: { ar: "/blog/a" }, languages: ["ar"] });
+    expect(missing.robots).toEqual({ index: false, follow: false });
+    expect(missing.alternates).toEqual({ canonical: "https://site.example/en" });
+
+    const arOnly = pageMetadata({ locale: "ar", path: { ar: "/blog/a" }, languages: ["ar", "en"] });
+    expect(arOnly.alternates).toEqual({ canonical: "https://site.example/ar/blog/a" });
+    expect(arOnly.robots).toBeUndefined();
+  });
+});
+
+describe("metaDescription", () => {
+  it("folds whitespace and leaves short text alone", () => {
+    expect(metaDescription("  A   short\n text ")).toBe("A short text");
+    expect(metaDescription("  ")).toBeUndefined();
+    expect(metaDescription(null)).toBeUndefined();
+  });
+
+  it("cuts long text on a word boundary with an ellipsis", () => {
+    const long = "word ".repeat(80);
+    const result = metaDescription(long)!;
+    expect(result.length).toBeLessThanOrEqual(DESCRIPTION_MAX);
+    expect(result.endsWith("word…")).toBe(true);
+  });
+
+  it("keeps a word that ends exactly at the cut", () => {
+    // 159 code points: "Read " + 30 × "word " + "this", then a space.
+    const text = `Read ${"word ".repeat(30)}this next`;
+    expect(metaDescription(text)).toBe(`Read ${"word ".repeat(30)}this…`);
+    // Punctuation after the cut is a word boundary too.
+    expect(metaDescription(`Read ${"word ".repeat(30)}this, then continue`)).toBe(
+      `Read ${"word ".repeat(30)}this…`,
+    );
+    // A cut inside a word still drops it.
+    expect(metaDescription(`Read ${"word ".repeat(30)}thisword`)).toBe(`Read ${"word ".repeat(30).trimEnd()}…`);
+  });
+
+  it("keeps the last whole word, even early in the text", () => {
+    expect(metaDescription(`Case notes ${"a".repeat(170)}`)).toBe("Case notes…");
+  });
+
+  it("keeps an emoji with its modifier, or drops both", () => {
+    const result = metaDescription(`${"a".repeat(158)}👍🏽${"b".repeat(20)}`)!;
+    expect(result).toBe(`${"a".repeat(158)}…`);
+  });
+
+  it("never splits an emoji when cutting", () => {
+    const result = metaDescription(`${"a".repeat(158)}😀${"b".repeat(20)}`)!;
+    expect(result).toBe(`${"a".repeat(158)}😀…`);
+    expect(result).not.toMatch(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/);
   });
 });

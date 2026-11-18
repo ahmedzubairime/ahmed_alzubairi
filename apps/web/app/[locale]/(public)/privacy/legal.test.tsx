@@ -20,6 +20,9 @@ vi.mock("next/navigation", () => ({
     throw new Error("NOT_FOUND");
   },
 }));
+vi.mock("next-intl/server", () => ({
+  getTranslations: async ({ locale }: { locale: string }) => (key: string) => `${locale}:${key}`,
+}));
 vi.mock("@clerk/nextjs", () => ({ useAuth: () => ({ isSignedIn: false }) }));
 vi.mock("next-intl", async (original) => ({
   ...(await original<typeof import("next-intl")>()),
@@ -85,7 +88,12 @@ describe.each([
   });
 
   it("titles the page from its content", async () => {
-    mocks.page = { key, title: `Title ${key}`, body: doc("B"), availableIn: ["ar", "en"] };
-    expect(await route.generateMetadata(params("ar"))).toEqual({ title: `Title ${key}` });
+    mocks.page = { key, title: `Title ${key}`, body: doc("B"), availableIn: ["ar"] };
+    const meta = await route.generateMetadata(params("ar"));
+    expect(meta.title).toEqual({ absolute: `ar:pages.${key}.title | Ahmed Alzubairi` });
+    expect(meta.description).toBe(`ar:pages.${key}.description`);
+    // Published in Arabic only: no English alternate.
+    expect(meta.alternates?.languages).toBeUndefined();
+    expect(meta.robots).toBeUndefined();
   });
 });

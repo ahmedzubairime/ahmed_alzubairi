@@ -184,6 +184,15 @@ export async function getCourse(slug: string, locale: Locale): Promise<CourseDet
 }
 
 /**
+ * The languages a course row is public in, by the same rule as `getCourse`.
+ * For the sitemap: the row needs `type`, `status`, `title_*` and `description_*`.
+ */
+export function courseLocales(row: Record<string, unknown>): Locale[] {
+  if (!courseTypeSchema.safeParse(row.type).success) return [];
+  return LOCALES.filter((locale) => isListed(row, locale));
+}
+
+/**
  * True when `getCourse` would return this slug in this language. Not cached,
  * so the proxy can call it: a `"use cache"` function throws there. It reads
  * one row and only the columns the rule needs.

@@ -8,14 +8,14 @@ import { MAIN_CONTENT_ID } from "@/components/skip-link";
 import { routing } from "@/i18n/routing";
 import { getFaqs } from "@/lib/content";
 import { FaqList } from "./faq-list";
+import { staticPageMetadata } from "@/lib/seo/static-pages";
 
 type Props = { params: Promise<{ locale: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
   if (!hasLocale(routing.locales, locale)) return {};
-  const t = await getTranslations({ locale, namespace: "Nav" });
-  return { title: t("faq") };
+  return staticPageMetadata(locale, "faq");
 }
 
 export default async function FaqPage({ params }: Props) {
