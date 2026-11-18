@@ -1,9 +1,7 @@
-import { SignOutButton } from "@clerk/nextjs";
-import { useLocale, useTranslations } from "next-intl";
 import type { ReactNode } from "react";
-import { getPathname } from "@/i18n/navigation";
 import { CompactHeader } from "./compact-header";
 import { NavLink } from "./nav-link";
+import { SignOutButton } from "./sign-out-button";
 import { MAIN_CONTENT_ID, SkipLink } from "./skip-link";
 
 export type AppShellLink = { href: string; label: string };
@@ -23,23 +21,11 @@ export function AppShell({
   menu?: ReactNode;
   children: ReactNode;
 }) {
-  const t = useTranslations("Header");
-  // Clerk's button ignores the provider's afterSignOutUrl and goes to "/",
-  // which is always Arabic: send the member to their own language's home.
-  const home = getPathname({ href: "/", locale: useLocale() });
-
   return (
     <>
       <SkipLink />
       <CompactHeader>
-        <SignOutButton redirectUrl={home}>
-          <button
-            type="button"
-            className="inline-flex h-9 items-center rounded-md px-2 text-sm font-semibold whitespace-nowrap hover:bg-text/10"
-          >
-            {t("signOut")}
-          </button>
-        </SignOutButton>
+        <SignOutButton />
       </CompactHeader>
       <div className="flex flex-1 flex-col md:flex-row">
         <aside className="border-b border-text/10 bg-surface p-4 md:w-60 md:shrink-0 md:border-e md:border-b-0">
