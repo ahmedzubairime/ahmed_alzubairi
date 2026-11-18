@@ -2,6 +2,7 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import type { ReactNode } from "react";
+import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import ar from "@/messages/ar/Consent.json";
@@ -20,6 +21,7 @@ const { ConsentChoice } = await import("./consent-choice");
 
 afterEach(() => {
   cleanup();
+  document.body.innerHTML = "";
   localStorage.clear();
 });
 
@@ -30,8 +32,64 @@ const tree = (locale: "ar" | "en" = "en") => (
 );
 
 describe("ConsentChoice", () => {
-  it("renders nothing on the server: the choice is read in the browser only", () => {
-    expect(renderToString(tree())).toBe("");
+  it("is in the server HTML, so it paints with the page, followed by its hide script", () => {
+    const html = renderToString(tree());
+    expect(html).toContain(`aria-label="${en.label}"`);
+    expect(html).toContain("<script>");
+    expect(html.indexOf("data-consent-banner")).toBeLessThan(html.indexOf("<script>"));
+  });
+
+  // The server HTML as the browser parses it: the script runs right after the banner.
+  const parseServerHtml = () => {
+    document.body.innerHTML = renderToString(tree());
+    const script = document.body.querySelector("script")!;
+    Object.defineProperty(document, "currentScript", { configurable: true, value: script });
+    try {
+      new Function(script.textContent ?? "")();
+    } finally {
+      Object.defineProperty(document, "currentScript", { configurable: true, value: null });
+    }
+    return document.body.querySelector<HTMLElement>("[data-consent-banner]")!;
+  };
+
+  it.each(["granted", "denied"])("hides before the first paint when the choice (%s) is stored", (choice) => {
+    localStorage.setItem("consent", choice);
+    expect(parseServerHtml().hidden).toBe(true);
+  });
+
+  it("shows the banner again when the choice is cleared between the script and hydration", async () => {
+    localStorage.setItem("consent", "denied");
+    const wrapper = parseServerHtml();
+    expect(wrapper.hidden).toBe(true);
+    localStorage.removeItem("consent"); // another tab cleared it
+    let root!: ReturnType<typeof hydrateRoot>;
+    await act(async () => {
+      root = hydrateRoot(document.body, tree());
+    });
+    expect(wrapper.hidden).toBe(false);
+    expect(screen.getByRole("region", { name: en.label })).toBeTruthy();
+    act(() => root.unmount());
+  });
+
+  it("keeps a script-hidden banner hidden after hydration while the choice is stored", async () => {
+    localStorage.setItem("consent", "granted");
+    const wrapper = parseServerHtml();
+    let root!: ReturnType<typeof hydrateRoot>;
+    await act(async () => {
+      root = hydrateRoot(document.body, tree());
+    });
+    expect(wrapper.hidden).toBe(true);
+    expect(screen.queryByRole("region")).toBeNull();
+    act(() => root.unmount());
+  });
+
+  it("renders no script in a client render, where it would never run", () => {
+    const { container } = render(tree());
+    expect(container.querySelector("script")).toBeNull();
+  });
+
+  it("stays visible before hydration for a visitor who hasn't chosen", () => {
+    expect(parseServerHtml().hidden).toBe(false);
   });
 
   it("shows the banner until a choice, with the privacy link", () => {
