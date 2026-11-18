@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sanitizeEvent, stripUrl } from "./sanitize";
+import { maskAttribute, sanitizeEvent, stripUrl } from "./sanitize";
 
 describe("stripUrl", () => {
   it.each([
@@ -96,5 +96,28 @@ describe("sanitizeEvent", () => {
     expect(sanitizeEvent({ event: 3 as unknown as string })).toBeNull();
     const hostile = { event: "$pageview", get properties(): Record<string, unknown> { throw new Error("boom"); } };
     expect(sanitizeEvent(hostile)).toBeNull();
+  });
+});
+
+describe("maskAttribute (replay)", () => {
+  it.each([
+    ["href", "/en/blog?search=Jane#c", "/en/blog"],
+    ["HREF", "https://site.test/en/contact?email=a@b.test", "https://site.test/en/contact"],
+    ["src", "/img.png?token=1", "/img.png"],
+    ["action", "/api/contact?x=1", "/api/contact"],
+    ["formaction", "/a?b", "/a"],
+    ["poster", "/v.jpg#t", "/v.jpg"],
+    ["xlink:href", "#icon", ""],
+  ])("strips %s", (name, value, out) => {
+    expect(maskAttribute(name, value)).toBe(out);
+  });
+
+  it("strips each srcset candidate and keeps its size", () => {
+    expect(maskAttribute("srcset", "/a.png?w=1 1x, /b.png?w=2 2x")).toBe("/a.png 1x, /b.png 2x");
+  });
+
+  it("keeps attributes that aren't URLs", () => {
+    expect(maskAttribute("class", "a?b")).toBe("a?b");
+    expect(maskAttribute("aria-label", "What? #1")).toBe("What? #1");
   });
 });

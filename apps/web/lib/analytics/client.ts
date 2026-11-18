@@ -3,7 +3,7 @@ import type { PostHogConfig } from "posthog-js";
 import type { Consent } from "./consent";
 import { uiHost } from "./env";
 import { replayAllowed } from "./replay";
-import { sanitizeEvent } from "./sanitize";
+import { maskAttribute, sanitizeEvent, stripUrl } from "./sanitize";
 
 /** Same-origin path that next.config.ts rewrites to PostHog EU. */
 export const INGEST_PATH = "/ingest";
@@ -33,7 +33,14 @@ export function posthogOptions(config: PosthogConfigResponse, consent: Consent |
     capture_pageview: "history_change",
     person_profiles: "identified_only",
     disable_session_recording: true,
-    session_recording: { maskAllInputs: true, maskTextSelector: "form" },
+    session_recording: {
+      maskAllInputs: true,
+      maskTextSelector: "form",
+      // Links, images and forms in the page: no query or hash in replay.
+      maskAttributeFn: maskAttribute,
+      // Recorded network requests: the address without its query.
+      maskCapturedNetworkRequestFn: (request) => ({ ...request, name: stripUrl(request.name) as string }),
+    },
     capture_exceptions: true,
     disable_surveys: true,
     before_send: (event) => sanitizeEvent(event),
@@ -55,12 +62,17 @@ export function applyConsent(posthog: PosthogLike, consent: Consent): void {
   if (posthog.get_config?.("persistence") !== persistence) posthog.set_config({ persistence });
 }
 
-/** Records on public pages only; stops the moment the visitor leaves them. */
+/**
+ * Records on public pages only. On any other page it always calls stop, even
+ * when nothing records yet: a start still loading the recorder would
+ * otherwise begin on the private page.
+ */
 export function syncRecording(posthog: PosthogLike, pathname: string): void {
-  const allowed = replayAllowed(pathname);
-  const recording = posthog.sessionRecordingStarted();
-  if (allowed && !recording) posthog.startSessionRecording();
-  if (!allowed && recording) posthog.stopSessionRecording();
+  if (!replayAllowed(pathname)) {
+    posthog.stopSessionRecording();
+    return;
+  }
+  if (!posthog.sessionRecordingStarted()) posthog.startSessionRecording();
 }
 
 /**

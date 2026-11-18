@@ -51,6 +51,27 @@ export function stripUrl(value: unknown): unknown {
   return cut === -1 ? value : value.slice(0, cut);
 }
 
+/** DOM attributes that hold a URL, which replay records on every element. */
+const URL_ATTRIBUTES = new Set(["href", "src", "action", "formaction", "poster", "cite", "data", "xlink:href"]);
+
+/**
+ * Replay's attribute mask: URL attributes lose their query and hash
+ * (`srcset` per candidate). Every other attribute is kept.
+ */
+export function maskAttribute(name: string, value: string): string {
+  const key = name.toLowerCase();
+  if (key === "srcset") {
+    return value
+      .split(",")
+      .map((candidate) => {
+        const [url = "", ...rest] = candidate.trim().split(/\s+/);
+        return [stripUrl(url), ...rest].join(" ");
+      })
+      .join(", ");
+  }
+  return URL_ATTRIBUTES.has(key) ? (stripUrl(value) as string) : value;
+}
+
 type Properties = Record<string, unknown>;
 
 function stripUrls(properties: Properties | undefined): Properties | undefined {

@@ -42,6 +42,10 @@ describe("posthogOptions", () => {
       session_recording: { maskAllInputs: true, maskTextSelector: "form" },
       capture_exceptions: true,
     });
+    const recording = options.session_recording!;
+    expect(recording.maskAttributeFn?.("href", "/en/blog?q=Jane")).toBe("/en/blog");
+    const request = recording.maskCapturedNetworkRequestFn?.({ name: "https://site.test/api/x?email=a@b.test" } as never);
+    expect(request?.name).toBe("https://site.test/api/x");
     const send = options.before_send as (event: unknown) => unknown;
     expect(send({ event: "$pageview", properties: { $current_url: "https://x.test/en?q=1" } })).toMatchObject({
       properties: { $current_url: "https://x.test/en" },
@@ -75,6 +79,15 @@ describe("syncRecording", () => {
     expect(posthog.startSessionRecording).toHaveBeenCalledTimes(1);
     syncRecording(posthog, "/en/about");
     expect(state.recording).toBe(true);
+  });
+
+  it("always stops on a private page, even before the recorder has started", () => {
+    const { posthog } = fake("memory");
+    syncRecording(posthog, "/ar/services");
+    // The recorder is still loading: nothing has started yet.
+    posthog.sessionRecordingStarted = () => false;
+    syncRecording(posthog, "/ar/account");
+    expect(posthog.stopSessionRecording).toHaveBeenCalledOnce();
   });
 
   it("never starts on a private page", () => {

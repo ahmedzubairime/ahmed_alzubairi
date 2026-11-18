@@ -18,6 +18,14 @@ describe("posthogEnv", () => {
     expect(posthogEnv({ NEXT_PUBLIC_POSTHOG_KEY: "phc_1", NEXT_PUBLIC_POSTHOG_HOST: "not a url" })).toBeNull();
     expect(posthogEnv({ NEXT_PUBLIC_POSTHOG_KEY: "phc_1", NEXT_PUBLIC_POSTHOG_HOST: "javascript:alert(1)" })).toBeNull();
   });
+
+  it("refuses plain HTTP except a local PostHog", () => {
+    expect(posthogEnv({ NEXT_PUBLIC_POSTHOG_KEY: "phc_1", NEXT_PUBLIC_POSTHOG_HOST: "http://eu.i.posthog.com" })).toBeNull();
+    expect(posthogEnv({ NEXT_PUBLIC_POSTHOG_KEY: "phc_1", NEXT_PUBLIC_POSTHOG_HOST: "http://localhost:8010" })).toEqual({
+      key: "phc_1",
+      host: "http://localhost:8010",
+    });
+  });
 });
 
 describe("uiHost", () => {

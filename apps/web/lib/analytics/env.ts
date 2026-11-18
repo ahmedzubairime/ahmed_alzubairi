@@ -16,7 +16,9 @@ export function posthogEnv(env: Record<string, string | undefined> = process.env
   const raw = env[`${PREFIX}HOST`]?.trim() || DEFAULT_POSTHOG_HOST;
   try {
     const url = new URL(raw);
-    if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+    // HTTPS only; plain HTTP just for a local PostHog on this machine.
+    const local = url.hostname === "localhost" || url.hostname === "127.0.0.1" || url.hostname === "[::1]";
+    if (url.protocol !== "https:" && !(url.protocol === "http:" && local)) return null;
     return { key, host: url.origin };
   } catch {
     return null;
