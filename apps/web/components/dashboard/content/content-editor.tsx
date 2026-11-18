@@ -262,6 +262,8 @@ export function GenericEditor(props: ContentEditorProps) {
         <LanguageTabs
           label={text.t("editor.languageTabs")}
           invalidLabel={text.t("editor.invalidTab")}
+          // Siblings of the editor's h2 sections, right under the page's h1.
+          headingLevel={2}
           arabic={panel("ar")}
           english={panel("en")}
         />

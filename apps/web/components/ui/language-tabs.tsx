@@ -60,6 +60,7 @@ export function LanguageTabs({
   english,
   label,
   invalidLabel,
+  headingLevel = 3,
   className,
 }: {
   arabic: LanguagePanel;
@@ -68,9 +69,16 @@ export function LanguageTabs({
   label: string;
   /** Read after an invalid tab's name, such as "has errors". */
   invalidLabel?: string;
+  /**
+   * The level of each panel's heading (shown side by side, from `lg`): one
+   * below the heading the tabs sit under. 2 when they come straight after
+   * the page's h1.
+   */
+  headingLevel?: 2 | 3 | 4;
   className?: string;
 }) {
   const id = useId();
+  const Heading = `h${headingLevel}` as const;
   const [selected, setSelected] = useState<"ar" | "en">("ar");
   // The server renders tabs. Wide screens switch to side by side on hydration;
   // CSS already shows both panels, so nothing moves.
@@ -147,7 +155,7 @@ export function LanguageTabs({
             )}
           >
             {/* The language's own name: its own `lang`, on the UI's start side. */}
-            <h3
+            <Heading
               id={`${id}-heading-${panel.lang}`}
               lang={panel.lang}
               className="mb-4 hidden items-center gap-2 text-lg lg:flex"
@@ -160,7 +168,7 @@ export function LanguageTabs({
                   {invalidLabel && <span className="sr-only">{invalidLabel}</span>}
                 </>
               )}
-            </h3>
+            </Heading>
             <PanelLanguageContext.Provider value={panel.language}>
               <div className="space-y-4">{panel.content}</div>
             </PanelLanguageContext.Provider>

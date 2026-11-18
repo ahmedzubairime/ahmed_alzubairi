@@ -73,8 +73,16 @@ function OpenBanner({
 
   return (
     <>
-      {/* The page ends with the banner's height, so nothing stays under it. */}
-      <div aria-hidden="true" data-consent-spacer="" className="shrink-0" style={{ height: covered }} />
+      {/* The page ends with the banner's height, so nothing stays under it.
+          The banner is in the server HTML, so until hydration measures it the
+          spacer uses a CSS estimate a little taller than the banner (phones:
+          109–141 px, wider: 94 px). The measured height then replaces it. */}
+      <div
+        aria-hidden="true"
+        data-consent-spacer=""
+        className={cx("shrink-0", covered === 0 && "h-36 sm:h-24")}
+        style={covered === 0 ? undefined : { height: covered }}
+      />
       <section
         ref={ref}
         aria-label={t("label")}

@@ -148,7 +148,7 @@ describe("/dashboard/training", () => {
 
 describe("/dashboard/training/new and [id]", () => {
   it("shows the create form", async () => {
-    expect(find(await NewCoursePage({ params }), CourseForm)?.props).toEqual({});
+    expect(find(await NewCoursePage({ params }), CourseForm)?.props).toEqual({ panelHeadingLevel: 2 });
   });
 
   it("shows the edit form and delete for a member with data.delete", async () => {

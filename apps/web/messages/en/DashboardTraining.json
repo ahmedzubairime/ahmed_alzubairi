@@ -48,7 +48,7 @@
     "seatsTaken": "{taken} of {total} taken",
     "registered": "{count, plural, =0 {No limit, none registered} one {No limit, # registered} other {No limit, # registered}}",
     "registrations": "{count, plural, =0 {No registrations} one {# registration} other {# registrations}}",
-    "registrationsLabel": "Registrations for {title}"
+    "registrationsLabel": "{count, plural, =0 {No registrations} one {# registration} other {# registrations}} for {title}"
   },
   "detail": {
     "back": "All courses",

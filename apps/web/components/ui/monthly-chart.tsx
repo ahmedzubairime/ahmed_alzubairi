@@ -73,12 +73,13 @@ export function MonthlyChart({
     notation: top >= 10_000 ? "compact" : "standard",
   });
   const percent = (value: number) => `${(Math.max(0, value) / top) * 100}%`;
-  // Arabic month names are long: on phones, label every other month, always
-  // keeping the latest one.
+  // Arabic month names are long: in a narrow chart (a phone, or a half-width
+  // card on desktop), label every other month, always keeping the latest one.
+  // A container query, so it follows the chart's width, not the screen's.
   const thinLabels = data.length > 6;
 
   return (
-    <figure className={cx("min-w-0 rounded-lg border border-text/10 bg-surface p-5 text-text shadow-sm", className)}>
+    <figure className={cx("@container min-w-0 rounded-lg border border-text/10 bg-surface p-5 text-text shadow-sm", className)}>
       <figcaption className="mb-4">
         <span className="block text-base font-semibold text-pretty">{title}</span>
         {description && <span className="mt-1 block text-sm text-pretty text-text-secondary">{description}</span>}
@@ -141,7 +142,7 @@ export function MonthlyChart({
                   key={index}
                   className={cx(
                     "flex min-w-0 flex-1 justify-center whitespace-nowrap",
-                    thinLabels && (data.length - 1 - index) % 2 === 1 && "max-sm:invisible",
+                    thinLabels && (data.length - 1 - index) % 2 === 1 && "@max-xl:invisible",
                   )}
                 >
                   {point.label}

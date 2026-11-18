@@ -34,6 +34,7 @@ export async function StatisticsView({ statistics, locale }: { statistics: Stati
         valueHeader={t("chart.value")}
         emptyLabel={t("chart.empty")}
         tableToggleLabel={t("chart.showValues")}
+        className="h-full"
       />
     );
   };
@@ -124,7 +125,12 @@ export async function StatisticsView({ statistics, locale }: { statistics: Stati
 
   const tiles = statistics.kpis.map(build);
   const charts = tiles.filter((item) => item.chart);
-  const visitors = statistics.kpis.some((kpi) => kpi.key === "signupShare");
+  // The note qualifies the visitor tile, so only when it shows a share: the
+  // latest month has measured visitors (the tile's own check). The chart
+  // carries its own note for earlier months.
+  const visitors = statistics.kpis.some(
+    (kpi) => kpi.key === "signupShare" && !("unavailable" in kpi) && (kpi.visitors.at(-1) ?? 0) > 0,
+  );
 
   return (
     <div className="space-y-6">
@@ -135,6 +141,8 @@ export async function StatisticsView({ statistics, locale }: { statistics: Stati
           </li>
         ))}
       </ul>
+      {/* Next to the visitor tile it qualifies, not after every chart. */}
+      {visitors && <p className="-mt-2 text-sm text-pretty text-text-secondary">{t("approximate")}</p>}
       {charts.length > 0 && (
         <ul className="grid gap-4 lg:grid-cols-2">
           {charts.map((item) => (
@@ -144,7 +152,6 @@ export async function StatisticsView({ statistics, locale }: { statistics: Stati
           ))}
         </ul>
       )}
-      {visitors && <p className="text-sm text-pretty text-text-secondary">{t("approximate")}</p>}
     </div>
   );
 }

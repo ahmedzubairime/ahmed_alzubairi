@@ -71,7 +71,14 @@ type Notice = { ok: boolean; text: string };
  * preview shows the unsaved values. The routes check `training.manage`;
  * showing this form is not the check. Every value is rendered as text.
  */
-export function CourseForm({ course }: { course?: AdminCourse }) {
+export function CourseForm({
+  course,
+  panelHeadingLevel = 3,
+}: {
+  course?: AdminCourse;
+  /** The language panels' heading level: 2 when no h2 sits above the form. */
+  panelHeadingLevel?: 2 | 3;
+}) {
   const t = useTranslations("DashboardTraining.form");
   const tTypes = useTranslations("DashboardTraining.types");
   const tStatus = useTranslations("DashboardTraining.status");
@@ -225,6 +232,7 @@ export function CourseForm({ course }: { course?: AdminCourse }) {
           <LanguageTabs
             label={t("languages")}
             invalidLabel={t("hasErrors")}
+            headingLevel={panelHeadingLevel}
             arabic={{ label: t("locales.ar"), content: languagePanel("Ar"), invalid: arInvalid }}
             english={{ label: t("locales.en"), content: languagePanel("En"), invalid: enInvalid }}
           />

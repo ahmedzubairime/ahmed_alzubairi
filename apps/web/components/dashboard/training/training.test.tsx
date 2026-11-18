@@ -458,7 +458,9 @@ describe("CourseList", () => {
   it("renders in Arabic with the course's registrations link", () => {
     withIntl(<CourseList courses={[COURSE]} locale="ar" />, "ar");
     expect(screen.getByText("حضورية")).toBeTruthy();
-    const link = screen.getByRole("link", { name: "تسجيلات إدارة المشاريع" });
+    // The name starts with the visible text (label in name, WCAG 2.5.3).
+    const link = screen.getByRole("link", { name: /^\S+ تسجيلات في إدارة المشاريع$/ });
+    expect(link.getAttribute("aria-label")?.startsWith(link.textContent ?? "")).toBe(true);
     expect(link.getAttribute("href")).toBe(`/dashboard/training/registrations?course=${ID}`);
   });
 });

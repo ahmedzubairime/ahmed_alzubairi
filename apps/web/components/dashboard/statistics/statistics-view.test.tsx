@@ -75,6 +75,25 @@ describe("StatisticsView", () => {
     expect(screen.getAllByText(en.approximate).length).toBeGreaterThan(0);
   });
 
+  it("shows the approximate note under the tiles only when the visitor tile shows a share", async () => {
+    const outsideCharts = () => screen.queryAllByText(en.approximate).filter((element) => !element.closest("figure"));
+    await show([{ key: "signupShare", signups: months(2), visitors: months(40) }]);
+    expect(outsideCharts()).toHaveLength(1);
+    cleanup();
+    await show([{ key: "signupShare", signups: Array(12).fill(0), visitors: Array(12).fill(0) }]);
+    expect(outsideCharts()).toHaveLength(0);
+    cleanup();
+    // Visitors earlier, none this month: the tile says so, and the note stays in the chart.
+    await show([{ key: "signupShare", signups: Array(12).fill(1), visitors: [...Array(11).fill(40), 0] }]);
+    expect(screen.getByText(en.kpis.signupShare.noVisitors)).toBeTruthy();
+    expect(outsideCharts()).toHaveLength(0);
+    // The chart still carries the note for its earlier months.
+    expect(screen.getAllByText(en.approximate).some((element) => element.closest("figure"))).toBe(true);
+    cleanup();
+    await show([{ key: "signupShare", unavailable: true }]);
+    expect(outsideCharts()).toHaveLength(0);
+  });
+
   it("says the reply chart may miss older months when the sample is capped", async () => {
     await show([{ key: "firstReply", months: [...Array(11).fill(null), 3], recent: 3, capped: true }]);
     expect(screen.getByText(/from the latest 5,000 replied requests/)).toBeTruthy();

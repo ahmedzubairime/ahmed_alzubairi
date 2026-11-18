@@ -23,7 +23,8 @@ export default async function NewCoursePage({ params }: { params: Promise<{ loca
       <PageHeader title={t("detail.newTitle")} intro={t("detail.newIntro")} />
       <Card as="section">
         <NextIntlClientProvider locale={access.locale} messages={{ DashboardTraining: all.DashboardTraining }}>
-          <CourseForm />
+          {/* No h2 between the page title and the form. */}
+          <CourseForm panelHeadingLevel={2} />
         </NextIntlClientProvider>
       </Card>
     </div>
