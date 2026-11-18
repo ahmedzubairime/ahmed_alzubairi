@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { cx, FOCUS_RING } from "./ui/cx";
 import { CloseIcon, MenuIcon } from "./icons";
 import { MAIN_NAV } from "./nav-items";
@@ -14,6 +14,7 @@ export function MobileMenu({ extra }: { extra?: ReactNode }) {
   const t = useTranslations("Header");
   const tNav = useTranslations("Nav");
   const [open, setOpen] = useState(false);
+  const toggle = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!open) {
@@ -22,6 +23,8 @@ export function MobileMenu({ extra }: { extra?: ReactNode }) {
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setOpen(false);
+        // Back to the button that opened it, never lost on the page (WCAG 2.4.3).
+        toggle.current?.focus();
       }
     };
     document.addEventListener("keydown", closeOnEscape);
@@ -31,6 +34,7 @@ export function MobileMenu({ extra }: { extra?: ReactNode }) {
   return (
     <div className="2xl:hidden">
       <button
+        ref={toggle}
         type="button"
         className={cx("inline-flex size-9 items-center justify-center rounded-md hover:bg-text/10", FOCUS_RING)}
         aria-label={open ? t("closeMenu") : t("openMenu")}
