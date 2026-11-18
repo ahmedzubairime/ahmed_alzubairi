@@ -16,3 +16,4 @@ export { DISALLOWED_PATHS, robotsFor } from "./robots";
 export { siteUrl } from "./site-url";
 export { STATIC_PAGES, type StaticPageKey } from "./paths";
 export { buildSitemap, type SitemapInput } from "./sitemap";
+export { docText } from "./doc-text";

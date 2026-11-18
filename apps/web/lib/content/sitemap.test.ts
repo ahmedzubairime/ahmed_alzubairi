@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 /**
  * The fake client returns every fixture row for the table and ignores
  * filters, so drafts and missing languages must be dropped by the code itself.
+ * It returns only the selected columns, as the real API does.
  */
 type Query = { table: string; columns: string; filters: [string, unknown][] };
 
@@ -10,6 +11,9 @@ const db = vi.hoisted(() => ({
   rows: {} as Record<string, Record<string, unknown>[]>,
   queries: [] as Query[],
 }));
+
+const project = (row: Record<string, unknown>, columns: string) =>
+  Object.fromEntries(columns.split(",").map((column) => column.trim()).map((column) => [column, row[column]]));
 
 vi.mock("@/lib/supabase/service", () => ({
   createServiceClient: () => ({
@@ -20,7 +24,10 @@ vi.mock("@/lib/supabase/service", () => ({
         select: (columns: string) => ((query.columns = columns), builder),
         eq: (column: string, value: unknown) => (query.filters.push([column, value]), builder),
         then: (resolve: (value: unknown) => unknown, reject?: (reason: unknown) => unknown) =>
-          Promise.resolve({ data: db.rows[table] ?? [], error: null }).then(resolve, reject),
+          Promise.resolve({ data: (db.rows[table] ?? []).map((row) => project(row, query.columns)), error: null }).then(
+            resolve,
+            reject,
+          ),
       };
       return builder;
     },

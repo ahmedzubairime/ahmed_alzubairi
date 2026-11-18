@@ -8,6 +8,7 @@ import { MAIN_CONTENT_ID } from "@/components/skip-link";
 import { otherLocale, routing } from "@/i18n/routing";
 import { getExpertiseAreas, getProject } from "@/lib/content";
 import { metaDescription, pageMetadata } from "@/lib/seo";
+import { defaultShareImage } from "@/lib/seo/static-pages";
 
 type Props = { params: Promise<{ locale: string; slug: string }> };
 
@@ -32,7 +33,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: project.title,
     description: metaDescription(project.goal),
     languages: project.availableIn,
-    ...(cover ? { image: { url: cover.url, ...(cover.alt ? { alt: cover.alt } : {}) } } : {}),
+    image: cover
+      ? { url: cover.url, ...(cover.alt ? { alt: cover.alt } : {}) }
+      : await defaultShareImage(locale),
   });
 }
 

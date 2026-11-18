@@ -10,6 +10,7 @@ import { MAIN_CONTENT_ID } from "@/components/skip-link";
 import { otherLocale, routing } from "@/i18n/routing";
 import { getExpertiseAreas, getFaqs, getService } from "@/lib/content";
 import { metaDescription, pageMetadata } from "@/lib/seo";
+import { defaultShareImage } from "@/lib/seo/static-pages";
 
 type Props = { params: Promise<{ locale: string; slug: string }> };
 
@@ -32,6 +33,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     path: `/services/${encodeURIComponent(service.slug)}`,
     title: service.title,
     description: metaDescription(service.summary),
+    image: await defaultShareImage(locale),
     languages: service.availableIn,
   });
 }

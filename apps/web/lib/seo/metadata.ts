@@ -82,10 +82,14 @@ export function pageMetadata({
     : [...new Set(languages)].filter((language) => pathIn(language) !== undefined);
   const fullTitle = pageTitle(title);
 
+  // A fallback has no alternates, so a language without a path is never resolved.
   const hreflang: Record<string, string> = {};
-  for (const language of available) hreflang[language] = localizedUrl(language, pathIn(language)!);
-  if (available.includes("ar") && available.includes("en")) {
-    hreflang["x-default"] = hreflang["ar"]!;
+  if (!isFallback) {
+    for (const language of available) {
+      const languagePath = pathIn(language);
+      if (languagePath !== undefined) hreflang[language] = localizedUrl(language, languagePath);
+    }
+    if (hreflang["ar"] && hreflang["en"]) hreflang["x-default"] = hreflang["ar"];
   }
 
   const images = [image ?? defaultOgImage(locale)];
@@ -96,7 +100,7 @@ export function pageMetadata({
     alternates: {
       canonical,
       // A page in one language has no alternates to announce.
-      ...(available.length > 1 ? { languages: hreflang } : {}),
+      ...(Object.keys(hreflang).length > 1 ? { languages: hreflang } : {}),
     },
     openGraph: {
       siteName: SITE_NAME,
@@ -129,8 +133,10 @@ export const DESCRIPTION_MAX = 160;
 export function metaDescription(text: string | null | undefined): string | undefined {
   const folded = text?.replace(/\s+/g, " ").trim();
   if (!folded) return undefined;
-  if (folded.length <= DESCRIPTION_MAX) return folded;
-  const cut = folded.slice(0, DESCRIPTION_MAX - 1);
+  // Counted in code points, so a cut never splits an emoji's surrogate pair.
+  const chars = Array.from(folded);
+  if (chars.length <= DESCRIPTION_MAX) return folded;
+  const cut = chars.slice(0, DESCRIPTION_MAX - 1).join("");
   const space = cut.lastIndexOf(" ");
   return `${(space > DESCRIPTION_MAX / 2 ? cut.slice(0, space) : cut).trimEnd()}…`;
 }

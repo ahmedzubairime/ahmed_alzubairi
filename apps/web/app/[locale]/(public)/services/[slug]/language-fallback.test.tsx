@@ -20,6 +20,9 @@ const item = () =>
       };
 
 vi.mock("next/server", () => ({ connection: async () => {} }));
+vi.mock("next-intl/server", () => ({
+  getTranslations: async ({ locale }: { locale: string }) => (key: string) => `${locale}:${key}`,
+}));
 vi.mock("next/navigation", () => ({
   notFound: () => {
     throw new Error("NOT_FOUND");
@@ -116,6 +119,10 @@ describe.each(routes)("%s detail page", (section, route) => {
       expect(result.alternates).toEqual({ canonical: `https://site.example/ar/${section}/x` });
       expect(result.robots).toBeUndefined();
       expect(result.title).toEqual({ absolute: "Item | Ahmed Alzubairi" });
+      // No image of its own: the default share image, with its translated alt.
+      expect(result.openGraph).toMatchObject({
+        images: [{ url: "/ar/opengraph-image/default", alt: "ar:ogAlt" }],
+      });
     });
   });
 });

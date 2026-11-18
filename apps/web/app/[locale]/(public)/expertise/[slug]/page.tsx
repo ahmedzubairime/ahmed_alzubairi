@@ -9,6 +9,7 @@ import { otherLocale, routing } from "@/i18n/routing";
 import { getExpertiseArea, getProjects, getServices } from "@/lib/content";
 import { routeSlug, staticSlugs } from "@/components/public/static-slugs";
 import { metaDescription, pageMetadata } from "@/lib/seo";
+import { defaultShareImage } from "@/lib/seo/static-pages";
 
 type Props = { params: Promise<{ locale: string; slug: string }> };
 
@@ -31,6 +32,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     path: `/expertise/${encodeURIComponent(area.slug)}`,
     title: area.title,
     description: metaDescription(area.summary),
+    image: await defaultShareImage(locale),
     languages: area.availableIn,
   });
 }

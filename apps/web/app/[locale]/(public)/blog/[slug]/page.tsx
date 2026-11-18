@@ -8,7 +8,8 @@ import { routeSlug, staticSlugs } from "@/components/public/static-slugs";
 import { MAIN_CONTENT_ID } from "@/components/skip-link";
 import { otherLocale, routing } from "@/i18n/routing";
 import { getPost, getRelatedPosts } from "@/lib/content/posts";
-import { metaDescription, pageMetadata } from "@/lib/seo";
+import { docText, metaDescription, pageMetadata } from "@/lib/seo";
+import { defaultShareImage } from "@/lib/seo/static-pages";
 
 type Props = { params: Promise<{ locale: string; slug: string }> };
 
@@ -36,11 +37,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     locale,
     path: paths,
     title: post.title,
-    description: metaDescription(post.excerpt),
+    // No excerpt: the article's own opening words, not the site's description.
+    description: metaDescription(post.excerpt) ?? metaDescription(docText(post.body)),
     languages: post.availableIn,
     type: "article",
     publishedTime: post.publishedAt,
-    ...(post.coverUrl ? { image: { url: post.coverUrl } } : {}),
+    image: post.coverUrl ? { url: post.coverUrl } : await defaultShareImage(locale),
   });
 }
 

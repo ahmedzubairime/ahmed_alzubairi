@@ -17,6 +17,7 @@ import { RegistrationPanel } from "@/components/training/registration-panel";
 import { otherLocale, routing } from "@/i18n/routing";
 import { getCourse } from "@/lib/content/courses";
 import { metaDescription, pageMetadata } from "@/lib/seo";
+import { defaultShareImage } from "@/lib/seo/static-pages";
 
 type Props = { params: Promise<{ locale: string; slug: string }> };
 
@@ -39,6 +40,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     path: `${TRAINING_PATH}/${encodeURIComponent(course.slug)}`,
     title: course.title,
     description: metaDescription(course.description),
+    image: await defaultShareImage(locale),
     languages: course.availableIn,
   });
 }

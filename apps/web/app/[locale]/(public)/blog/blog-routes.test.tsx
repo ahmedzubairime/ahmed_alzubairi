@@ -152,6 +152,26 @@ describe("/blog", () => {
     expect(meta.description).toBe("ar:pages.blog.description");
   });
 
+  it("gives a later page its own canonical, with no alternates", async () => {
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://site.example");
+    const props = { params: Promise.resolve({ locale: "en" }), searchParams: Promise.resolve({ page: "2" }) };
+    expect((await list.generateMetadata(props)).alternates).toEqual({
+      canonical: "https://site.example/en/blog?page=2",
+    });
+    const first = { params: Promise.resolve({ locale: "en" }), searchParams: Promise.resolve({ page: "1" }) };
+    expect((await list.generateMetadata(first)).alternates?.canonical).toBe("https://site.example/en/blog");
+  });
+
+  it("falls back to the article's text when it has no excerpt", async () => {
+    mocks.getPost.mockResolvedValue(
+      post({
+        excerpt: null,
+        body: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Opening words." }] }] },
+      }),
+    );
+    expect((await article.generateMetadata(params("en"))).description).toBe("Opening words.");
+  });
+
   it("is not found for an unknown locale", async () => {
     const props = { params: Promise.resolve({ locale: "fr" }), searchParams: Promise.resolve({}) };
     await expect(list.default(props)).rejects.toThrow("NOT_FOUND");

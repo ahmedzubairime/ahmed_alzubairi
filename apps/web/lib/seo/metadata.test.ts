@@ -119,6 +119,11 @@ describe("pageMetadata", () => {
     });
     expect(both.openGraph).toMatchObject({ type: "article", publishedTime: "2026-01-01T00:00:00Z" });
 
+    // The English page of a post that has only an Arabic slug: a fallback, not a crash.
+    const missing = pageMetadata({ locale: "en", path: { ar: "/blog/a" }, languages: ["ar"] });
+    expect(missing.robots).toEqual({ index: false, follow: false });
+    expect(missing.alternates).toEqual({ canonical: "https://site.example/en" });
+
     const arOnly = pageMetadata({ locale: "ar", path: { ar: "/blog/a" }, languages: ["ar", "en"] });
     expect(arOnly.alternates).toEqual({ canonical: "https://site.example/ar/blog/a" });
     expect(arOnly.robots).toBeUndefined();
@@ -137,5 +142,11 @@ describe("metaDescription", () => {
     const result = metaDescription(long)!;
     expect(result.length).toBeLessThanOrEqual(DESCRIPTION_MAX);
     expect(result.endsWith("word…")).toBe(true);
+  });
+
+  it("never splits an emoji when cutting", () => {
+    const result = metaDescription(`${"a".repeat(158)}😀${"b".repeat(20)}`)!;
+    expect(result).toBe(`${"a".repeat(158)}😀…`);
+    expect(result).not.toMatch(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/);
   });
 });

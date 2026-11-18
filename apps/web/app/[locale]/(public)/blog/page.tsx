@@ -17,10 +17,12 @@ import { staticPageMetadata } from "@/lib/seo/static-pages";
 type SearchParams = Record<string, string | string[] | undefined>;
 type Props = { params: Promise<{ locale: string }>; searchParams: Promise<SearchParams> };
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const { locale } = await params;
   if (!hasLocale(routing.locales, locale)) return {};
-  return staticPageMetadata(locale, "blog");
+  // Page 2 onward is its own canonical page.
+  const { page } = parseBlogQuery(await searchParams);
+  return staticPageMetadata(locale, "blog", undefined, { page });
 }
 
 /**
