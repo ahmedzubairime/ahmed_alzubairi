@@ -7,19 +7,22 @@ export type PosthogEnv = { key: string; host: string };
 
 const PREFIX = "NEXT_PUBLIC_POSTHOG_";
 
-/** The EU ingestion host (the project's region), used when HOST is unset. */
+/** The EU ingestion host (the project's region): the only one allowed, and the default. */
 export const DEFAULT_POSTHOG_HOST = "https://eu.i.posthog.com";
 
+/**
+ * The browser always sends through `/ingest`, which next.config.ts rewrites
+ * to PostHog EU (§6.23). So the host must be that EU host, for the server
+ * too: any other value turns PostHog off rather than splitting events
+ * between two places.
+ */
 export function posthogEnv(env: Record<string, string | undefined> = process.env): PosthogEnv | null {
   const key = env[`${PREFIX}KEY`]?.trim();
   if (!key) return null;
   const raw = env[`${PREFIX}HOST`]?.trim() || DEFAULT_POSTHOG_HOST;
   try {
-    const url = new URL(raw);
-    // HTTPS only; plain HTTP just for a local PostHog on this machine.
-    const local = url.hostname === "localhost" || url.hostname === "127.0.0.1" || url.hostname === "[::1]";
-    if (url.protocol !== "https:" && !(url.protocol === "http:" && local)) return null;
-    return { key, host: url.origin };
+    const { origin } = new URL(raw);
+    return origin === DEFAULT_POSTHOG_HOST ? { key, host: origin } : null;
   } catch {
     return null;
   }

@@ -112,8 +112,16 @@ describe("maskAttribute (replay)", () => {
     expect(maskAttribute(name, value)).toBe(out);
   });
 
-  it("strips each srcset candidate and keeps its size", () => {
-    expect(maskAttribute("srcset", "/a.png?w=1 1x, /b.png?w=2 2x")).toBe("/a.png 1x, /b.png 2x");
+  it.each([
+    ["/a.png?w=1 1x, /b.png?w=2 2x", "/a.png 1x, /b.png 2x"],
+    ["/a.png?labels=public,private-label 1x", "/a.png 1x"],
+    ["/a.png?x=1,/b.png?y=2 2x", "/a.png 2x"],
+    ["/a.png?x=1, /b.png", "/a.png, /b.png"],
+    ["data:image/png;base64,AAA= 1x, /b.png#f 2x", "data:image/png;base64,AAA= 1x, /b.png 2x"],
+    ["/a.png 100w (min-width: 2px), /b.png 200w", "/a.png 100w (min-width: 2px), /b.png 200w"],
+    ["  ", ""],
+  ])("strips each srcset candidate whole: %s", (value, out) => {
+    expect(maskAttribute("srcset", value)).toBe(out);
   });
 
   it("keeps attributes that aren't URLs", () => {

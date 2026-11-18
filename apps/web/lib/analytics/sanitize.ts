@@ -55,20 +55,49 @@ export function stripUrl(value: unknown): unknown {
 const URL_ATTRIBUTES = new Set(["href", "src", "action", "formaction", "poster", "cite", "data", "xlink:href"]);
 
 /**
+ * `srcset` candidates parsed as the HTML spec does: a URL runs to the next
+ * whitespace (commas inside it stay), trailing commas end it, and its
+ * descriptor runs to the next comma outside parentheses. Each URL loses its
+ * query and hash; descriptors are kept.
+ */
+export function stripSrcset(value: string): string {
+  const candidates: string[] = [];
+  let at = 0;
+  while (at < value.length) {
+    while (at < value.length && /[\s,]/.test(value[at] as string)) at++;
+    if (at >= value.length) break;
+    let end = at;
+    while (end < value.length && !/\s/.test(value[end] as string)) end++;
+    let url = value.slice(at, end);
+    let descriptor = "";
+    if (/,+$/.test(url)) {
+      url = url.replace(/,+$/, "");
+    } else {
+      let depth = 0;
+      let stop = end;
+      while (stop < value.length) {
+        const char = value[stop];
+        if (char === "(") depth++;
+        else if (char === ")") depth = Math.max(0, depth - 1);
+        else if (char === "," && depth === 0) break;
+        stop++;
+      }
+      descriptor = value.slice(end, stop).trim();
+      end = stop;
+    }
+    candidates.push(descriptor ? `${stripUrl(url) as string} ${descriptor}` : (stripUrl(url) as string));
+    at = end;
+  }
+  return candidates.join(", ");
+}
+
+/**
  * Replay's attribute mask: URL attributes lose their query and hash
  * (`srcset` per candidate). Every other attribute is kept.
  */
 export function maskAttribute(name: string, value: string): string {
   const key = name.toLowerCase();
-  if (key === "srcset") {
-    return value
-      .split(",")
-      .map((candidate) => {
-        const [url = "", ...rest] = candidate.trim().split(/\s+/);
-        return [stripUrl(url), ...rest].join(" ");
-      })
-      .join(", ");
-  }
+  if (key === "srcset") return stripSrcset(value);
   return URL_ATTRIBUTES.has(key) ? (stripUrl(value) as string) : value;
 }
 

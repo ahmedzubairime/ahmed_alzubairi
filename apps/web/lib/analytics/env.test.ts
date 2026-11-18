@@ -7,24 +7,22 @@ describe("posthogEnv", () => {
     expect(posthogEnv({ NEXT_PUBLIC_POSTHOG_KEY: "  ", NEXT_PUBLIC_POSTHOG_HOST: "https://eu.i.posthog.com" })).toBeNull();
   });
 
-  it("reads the key and host's origin", () => {
+  it("reads the key and the EU host's origin", () => {
     expect(
       posthogEnv({ NEXT_PUBLIC_POSTHOG_KEY: "phc_1", NEXT_PUBLIC_POSTHOG_HOST: "https://eu.i.posthog.com/" }),
     ).toEqual({ key: "phc_1", host: "https://eu.i.posthog.com" });
-  });
-
-  it("uses the EU host when HOST is unset, and refuses a bad one", () => {
     expect(posthogEnv({ NEXT_PUBLIC_POSTHOG_KEY: "phc_1" })).toEqual({ key: "phc_1", host: DEFAULT_POSTHOG_HOST });
-    expect(posthogEnv({ NEXT_PUBLIC_POSTHOG_KEY: "phc_1", NEXT_PUBLIC_POSTHOG_HOST: "not a url" })).toBeNull();
-    expect(posthogEnv({ NEXT_PUBLIC_POSTHOG_KEY: "phc_1", NEXT_PUBLIC_POSTHOG_HOST: "javascript:alert(1)" })).toBeNull();
   });
 
-  it("refuses plain HTTP except a local PostHog", () => {
-    expect(posthogEnv({ NEXT_PUBLIC_POSTHOG_KEY: "phc_1", NEXT_PUBLIC_POSTHOG_HOST: "http://eu.i.posthog.com" })).toBeNull();
-    expect(posthogEnv({ NEXT_PUBLIC_POSTHOG_KEY: "phc_1", NEXT_PUBLIC_POSTHOG_HOST: "http://localhost:8010" })).toEqual({
-      key: "phc_1",
-      host: "http://localhost:8010",
-    });
+  it.each([
+    "https://us.i.posthog.com",
+    "http://eu.i.posthog.com",
+    "http://localhost:8010",
+    "https://eu.i.posthog.com.evil.test",
+    "not a url",
+    "javascript:alert(1)",
+  ])("turns PostHog off for any host but EU's ingestion host: %s", (host) => {
+    expect(posthogEnv({ NEXT_PUBLIC_POSTHOG_KEY: "phc_1", NEXT_PUBLIC_POSTHOG_HOST: host })).toBeNull();
   });
 });
 
