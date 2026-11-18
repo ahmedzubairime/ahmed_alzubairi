@@ -1,4 +1,4 @@
-import { PERMISSIONS, type AdminCourse, type Permission } from "@repo/shared";
+import type { AdminCourse } from "@repo/shared";
 import { isValidElement, type ReactElement, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -57,7 +57,6 @@ const { default: NewCoursePage } = await import("./new/page");
 const { default: CoursePage } = await import("./[id]/page");
 const { default: RegistrationsPage } = await import("./registrations/page");
 const { default: RequestsPage } = await import("./requests/page");
-const { default: DashboardPage } = await import("../page");
 const { Refusal } = await import("@/components/dashboard/refusal");
 const { PageHeader } = await import("@/components/ui");
 const { CourseList } = await import("@/components/dashboard/training/course-list");
@@ -98,13 +97,7 @@ function elements(node: ReactNode): ReactElement[] {
   return [node, ...nested];
 }
 const find = (tree: ReactNode, type: unknown) => elements(tree).find((element) => element.type === type);
-const text = (tree: ReactNode): string =>
-  elements(tree)
-    .flatMap((element) => {
-      const children = (element.props as { children?: unknown }).children;
-      return (Array.isArray(children) ? children : [children]).filter((child) => typeof child === "string");
-    })
-    .join("|");
+
 
 beforeEach(() => {
   mocks.requireTeamMember.mockReset().mockResolvedValue({});
@@ -195,33 +188,5 @@ describe("/dashboard/training/requests", () => {
   it("lists the requests", async () => {
     const page = await RequestsPage({ params, searchParams: search() });
     expect(find(page, RequestList)?.props).toEqual({ requests: [{ id: "q1" }], locale: "en" });
-  });
-});
-
-describe("dashboard home summary", () => {
-  const grant = (keys: Permission[]) => mocks.grantedPermissions.mockResolvedValue(new Set<Permission>(keys));
-
-  it("shows the week's registrations on Training with training.manage", async () => {
-    grant([PERMISSIONS.TRAINING_MANAGE]);
-    const page = await DashboardPage({ params });
-    expect(mocks.loadNewRegistrationCount).toHaveBeenCalled();
-    expect(mocks.loadNewSignupCount).not.toHaveBeenCalled();
-    expect(text(page)).toContain('home.newRegistrations {"count":5,"days":7}');
-  });
-
-  it("reads no registrations without training.manage", async () => {
-    grant([PERMISSIONS.CONTENT_MANAGE]);
-    const page = await DashboardPage({ params });
-    expect(mocks.loadNewRegistrationCount).not.toHaveBeenCalled();
-    expect(text(page)).not.toContain("home.newRegistrations");
-  });
-
-  it("leaves the line out when the count fails", async () => {
-    grant([PERMISSIONS.TRAINING_MANAGE]);
-    mocks.loadNewRegistrationCount.mockRejectedValue(new Error("down"));
-    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const page = await DashboardPage({ params });
-    expect(text(page)).not.toContain("home.newRegistrations");
-    spy.mockRestore();
   });
 });

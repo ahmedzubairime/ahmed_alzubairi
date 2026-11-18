@@ -1,0 +1,16 @@
+{
+  "heading": "Summary",
+  "number": "{count, number}",
+  "items": {
+    "newRequests": "New consultation requests",
+    "activeConsultations": "Open consultations",
+    "documentRequests": "Open document requests, awaiting a decision",
+    "unreadMessages": "Unread contact messages",
+    "registrations": "Course registrations in the last {days} days",
+    "newSubscribers": "New newsletter subscribers in the last {days} days"
+  },
+  "assigned": {
+    "newRequests": "New consultation requests assigned to you",
+    "activeConsultations": "Open consultations assigned to you"
+  }
+}
