@@ -5,7 +5,7 @@ import { NextIntlClientProvider } from "next-intl";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import enConsent from "../messages/en/Consent.json";
-import { ConsentBanner } from "./consent-banner";
+import { ConsentBanner, ConsentSpacer, COVERED_VAR } from "./consent-banner";
 
 vi.mock("@/i18n/navigation", () => ({
   Link: ({ href, children, className }: { href: string; children: ReactNode; className?: string }) => (
@@ -60,52 +60,41 @@ function renderBanner(open = true) {
       <ConsentBanner open={open} onAccept={onAccept} onDecline={onDecline} privacyHref="/privacy" />
     </NextIntlClientProvider>,
   );
-  const spacer = () => result.container.querySelector<HTMLElement>("[data-consent-spacer]");
-  return { onAccept, onDecline, spacer };
+  return { onAccept, onDecline, result };
 }
 
-describe("ConsentBanner spacer", () => {
-  it("ends the page with a spacer as tall as the screen space the banner covers", () => {
-    const { spacer } = renderBanner();
-    expect(spacer()?.style.height).toBe("120px");
-    expect(spacer()?.getAttribute("aria-hidden")).toBe("true");
+const covered = () => document.documentElement.style.getPropertyValue(COVERED_VAR);
+
+describe("ConsentBanner covered height", () => {
+  it("publishes the screen space it covers as a CSS variable on <html>", () => {
+    renderBanner();
+    expect(covered()).toBe("120px");
   });
 
   it("measures again when the banner changes size", () => {
-    const { spacer } = renderBanner();
+    renderBanner();
     expect(observedTarget).toBe(screen.getByRole("region", { name: "Cookies" }));
     bannerTop = window.innerHeight - 78;
     act(() => observed?.());
-    expect(spacer()?.style.height).toBe("78px");
+    expect(covered()).toBe("78px");
   });
 
   it("measures again when the window is resized", () => {
-    const { spacer } = renderBanner();
+    renderBanner();
     bannerTop = window.innerHeight - 141;
     act(() => {
       window.dispatchEvent(new Event("resize"));
     });
-    expect(spacer()?.style.height).toBe("141px");
+    expect(covered()).toBe("141px");
   });
 
-  it("uses a CSS estimate until the banner is measured", () => {
-    bannerTop = window.innerHeight; // Not laid out yet: covers nothing measurable.
-    const { spacer } = renderBanner();
-    expect(spacer()?.style.height).toBe("");
-    expect(spacer()?.className).toContain("h-36");
-    bannerTop = window.innerHeight - 109;
-    act(() => observed?.());
-    expect(spacer()?.style.height).toBe("109px");
-    expect(spacer()?.className).not.toContain("h-36");
-  });
-
-  it("leaves no spacer when closed", () => {
-    const { spacer } = renderBanner(false);
-    expect(spacer()).toBeNull();
+  it("publishes nothing when closed", () => {
+    renderBanner(false);
+    expect(covered()).toBe("");
     expect(screen.queryByRole("region")).toBeNull();
   });
 
-  it("stops observing once closed", () => {
+  it("stops observing and clears the variable once closed", () => {
     const view = render(
       <NextIntlClientProvider locale="en" messages={{ Consent: enConsent }}>
         <ConsentBanner open onAccept={() => {}} onDecline={() => {}} privacyHref="/privacy" />
@@ -120,6 +109,73 @@ describe("ConsentBanner spacer", () => {
     );
     expect(observed).toBeNull();
     expect(observedTarget).toBeNull();
+    expect(covered()).toBe("");
+  });
+});
+
+describe("ConsentSpacer", () => {
+  it("is hidden, and shown by CSS only while an unhidden consent wrapper holds a banner", () => {
+    const { container } = render(<ConsentSpacer />);
+    const spacer = container.querySelector<HTMLElement>("[data-consent-spacer]")!;
+    expect(spacer.getAttribute("aria-hidden")).toBe("true");
+    expect(spacer.className).toContain("hidden");
+    expect(spacer.className).toContain("[body:has([data-consent-banner]:not([hidden])_section)_&]:block");
+  });
+
+  it("takes the measured height, with an estimate before it", () => {
+    const { container } = render(<ConsentSpacer />);
+    const spacer = container.querySelector<HTMLElement>("[data-consent-spacer]")!;
+    expect(spacer.className).toContain("h-[var(--consent-covered,9rem)]");
+    expect(spacer.className).toContain("sm:h-[var(--consent-covered,6rem)]");
+  });
+});
+
+describe("ConsentBanner focus after a choice", () => {
+  function page() {
+    const main = document.createElement("main");
+    main.id = "main-content";
+    document.body.prepend(main);
+    return main;
+  }
+
+  afterEach(() => {
+    document.querySelector("main")?.remove();
+  });
+
+  it.each(["Accept", "Decline"])("moves focus to <main> after %s by keyboard, without scrolling", async (name) => {
+    const main = page();
+    const focus = vi.spyOn(main, "focus");
+    const user = userEvent.setup();
+    renderBanner();
+    screen.getByRole("button", { name }).focus();
+    await user.keyboard("{Enter}");
+    expect(document.activeElement).toBe(main);
+    expect(focus).toHaveBeenCalledWith({ preventScroll: true });
+    expect(main.getAttribute("tabindex")).toBe("-1");
+  });
+
+  it("removes the temporary tabindex once focus leaves <main>", async () => {
+    const main = page();
+    const after = document.createElement("button");
+    main.append(after);
+    const user = userEvent.setup();
+    renderBanner();
+    screen.getByRole("button", { name: "Accept" }).focus();
+    await user.keyboard("{Enter}");
+    after.focus();
+    expect(main.hasAttribute("tabindex")).toBe(false);
+  });
+
+  it("leaves focus alone when the choice didn't come from inside the banner", () => {
+    const main = page();
+    const outside = document.createElement("button");
+    document.body.append(outside);
+    outside.focus();
+    renderBanner();
+    fireEvent.click(screen.getByRole("button", { name: "Decline" }));
+    expect(document.activeElement).toBe(outside);
+    expect(main.hasAttribute("tabindex")).toBe(false);
+    outside.remove();
   });
 });
 

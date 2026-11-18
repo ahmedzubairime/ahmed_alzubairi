@@ -1,10 +1,14 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { Link } from "@/i18n/navigation";
+import { MAIN_CONTENT_ID } from "@/components/skip-link";
 import { Button } from "@/components/ui";
 import { FOCUS_RING, cx } from "@/components/ui/cx";
+
+/** The height the open banner covers at the bottom of the screen, set on <html>. */
+export const COVERED_VAR = "--consent-covered";
 
 /**
  * The cookie banner's look. It holds no state: the caller decides when it is
@@ -14,9 +18,9 @@ import { FOCUS_RING, cx } from "@/components/ui/cx";
  * Accept and decline have the same style and size, so declining is as easy
  * as accepting. On phones it stays short (one sentence, one row of buttons).
  *
- * It never hides content for good: while open, an in-flow spacer as tall as
- * the space the banner takes at the bottom of the screen ends the page, so
- * every button and field can scroll above it.
+ * It sits early in the page (right after the skip link), so keyboard users
+ * reach it first, while it stays fixed at the bottom of the screen. The page
+ * still ends with room for it: see `ConsentSpacer`.
  */
 export function ConsentBanner({
   open,
@@ -34,18 +38,21 @@ export function ConsentBanner({
 }
 
 /**
- * How much of the screen's bottom the banner covers: its height plus the gap
- * under it on wider screens. Measured again when its size changes (text
- * wrapping, a breakpoint, the language).
+ * Publishes how much of the screen's bottom the banner covers (its height,
+ * plus the gap under it on wider screens) as a CSS variable on <html>, for
+ * the spacer at the end of the page. Measured before paint, and again when
+ * the banner's size changes (text wrapping, a breakpoint, the language).
  */
 function useCoveredHeight() {
   const ref = useRef<HTMLElement>(null);
-  const [covered, setCovered] = useState(0);
-  // Before paint, so the page never shows a frame without the spacer.
   useLayoutEffect(() => {
     const element = ref.current;
     if (!element) return;
-    const measure = () => setCovered(Math.max(0, Math.ceil(window.innerHeight - element.getBoundingClientRect().top)));
+    const root = document.documentElement;
+    const measure = () => {
+      const covered = Math.max(0, Math.ceil(window.innerHeight - element.getBoundingClientRect().top));
+      root.style.setProperty(COVERED_VAR, `${covered}px`);
+    };
     measure();
     // Old browsers without ResizeObserver still measure on window resize.
     const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
@@ -54,9 +61,26 @@ function useCoveredHeight() {
     return () => {
       observer?.disconnect();
       window.removeEventListener("resize", measure);
+      root.style.removeProperty(COVERED_VAR);
     };
   }, []);
-  return { ref, covered };
+  return ref;
+}
+
+/**
+ * After a choice made from inside the banner, focus goes to the page's
+ * <main> (where the skip link goes) instead of falling to <body> when the
+ * banner unmounts, so the next Tab continues into the content. Without
+ * scrolling. The temporary tabindex goes once focus leaves.
+ */
+function focusMain() {
+  const main = document.getElementById(MAIN_CONTENT_ID) ?? document.querySelector("main");
+  if (!main) return;
+  if (!main.hasAttribute("tabindex")) {
+    main.setAttribute("tabindex", "-1");
+    main.addEventListener("blur", () => main.removeAttribute("tabindex"), { once: true });
+  }
+  main.focus({ preventScroll: true });
 }
 
 function OpenBanner({
@@ -69,47 +93,67 @@ function OpenBanner({
   privacyHref: string;
 }) {
   const t = useTranslations("Consent");
-  const { ref, covered } = useCoveredHeight();
+  const ref = useCoveredHeight();
+  // Move focus only when it is in the banner (a keyboard choice, or a click
+  // that focused the button); a choice made otherwise leaves focus alone.
+  const choose = (handler: () => void) => () => {
+    const focusInside = ref.current?.contains(document.activeElement) ?? false;
+    if (focusInside) focusMain();
+    handler();
+  };
 
   return (
-    <>
-      {/* The page ends with the banner's height, so nothing stays under it.
-          The banner is in the server HTML, so until hydration measures it the
-          spacer uses a CSS estimate a little taller than the banner (phones:
-          109–141 px, wider: 94 px). The measured height then replaces it. */}
-      <div
-        aria-hidden="true"
-        data-consent-spacer=""
-        className={cx("shrink-0", covered === 0 && "h-36 sm:h-24")}
-        style={covered === 0 ? undefined : { height: covered }}
-      />
-      <section
-        ref={ref}
-        aria-label={t("label")}
-        className={cx(
-          "fixed inset-x-0 bottom-0 z-40 border-t border-text/10 bg-surface text-text shadow-lg",
-          "sm:inset-x-4 sm:bottom-4 sm:mx-auto sm:max-w-3xl sm:rounded-lg sm:border",
-        )}
-      >
-        {/* Tighter on short screens, so it takes less of the view. */}
-        <div className="flex flex-col gap-3 px-4 py-3 [@media(max-height:700px)]:gap-2 [@media(max-height:700px)]:py-2 sm:flex-row sm:items-center sm:gap-6 sm:p-4">
-          <p className="min-w-0 flex-1 text-sm text-pretty">
-            {t("text")}{" "}
-            <Link href={privacyHref} className={cx("font-semibold whitespace-nowrap underline underline-offset-4", FOCUS_RING)}>
-              {t("privacy")}
-            </Link>
-          </p>
-          {/* Same variant, same width: neither choice is the default. */}
-          <div className="grid shrink-0 grid-cols-2 gap-2 sm:w-64">
-            <Button variant="secondary" onClick={onAccept}>
-              {t("accept")}
-            </Button>
-            <Button variant="secondary" onClick={onDecline}>
-              {t("decline")}
-            </Button>
-          </div>
+    <section
+      ref={ref}
+      aria-label={t("label")}
+      className={cx(
+        "fixed inset-x-0 bottom-0 z-40 border-t border-text/10 bg-surface text-text shadow-lg",
+        "sm:inset-x-4 sm:bottom-4 sm:mx-auto sm:max-w-3xl sm:rounded-lg sm:border",
+      )}
+    >
+      {/* Tighter on short screens, so it takes less of the view. */}
+      <div className="flex flex-col gap-3 px-4 py-3 [@media(max-height:700px)]:gap-2 [@media(max-height:700px)]:py-2 sm:flex-row sm:items-center sm:gap-6 sm:p-4">
+        <p className="min-w-0 flex-1 text-sm text-pretty">
+          {t("text")}{" "}
+          <Link href={privacyHref} className={cx("font-semibold whitespace-nowrap underline underline-offset-4", FOCUS_RING)}>
+            {t("privacy")}
+          </Link>
+        </p>
+        {/* Same variant, same width: neither choice is the default. */}
+        <div className="grid shrink-0 grid-cols-2 gap-2 sm:w-64">
+          <Button variant="secondary" onClick={choose(onAccept)}>
+            {t("accept")}
+          </Button>
+          <Button variant="secondary" onClick={choose(onDecline)}>
+            {t("decline")}
+          </Button>
         </div>
-      </section>
-    </>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * The end of the page, while the banner is open: as tall as the space it
+ * covers, so every button and field can scroll above it. Rendered last in
+ * <body>, while the banner itself sits early.
+ *
+ * CSS decides when it shows, so it is right before hydration too: only while
+ * a consent wrapper (`[data-consent-banner]`, see ConsentChoice) holds a
+ * banner and isn't `hidden`. The pre-paint script that hides the wrapper for
+ * a visitor who already chose hides this with it. Its height is the measured
+ * one once the banner has measured itself, an estimate a little taller than
+ * the banner before (phones: 109–141 px, wider: 94 px).
+ */
+export function ConsentSpacer() {
+  return (
+    <div
+      aria-hidden="true"
+      data-consent-spacer=""
+      className={cx(
+        "hidden shrink-0 [body:has([data-consent-banner]:not([hidden])_section)_&]:block",
+        "h-[var(--consent-covered,9rem)] sm:h-[var(--consent-covered,6rem)]",
+      )}
+    />
   );
 }

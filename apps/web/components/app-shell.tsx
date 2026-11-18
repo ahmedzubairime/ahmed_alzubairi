@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { getPathname } from "@/i18n/navigation";
 import { CompactHeader } from "./compact-header";
 import { NavLink } from "./nav-link";
-import { MAIN_CONTENT_ID, SkipLink } from "./skip-link";
+import { MAIN_CONTENT_ID } from "./skip-link";
 
 export type AppShellLink = { href: string; label: string };
 
@@ -30,7 +30,6 @@ export function AppShell({
 
   return (
     <>
-      <SkipLink />
       <CompactHeader>
         <SignOutButton redirectUrl={home}>
           <button
