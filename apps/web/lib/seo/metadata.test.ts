@@ -29,6 +29,8 @@ describe("pageTitle", () => {
     expect(pageTitle("About")).toBe(`About | ${SITE_NAME}`);
     expect(pageTitle(undefined)).toBe(SITE_NAME);
     expect(pageTitle(SITE_NAME)).toBe(SITE_NAME);
+    // Replacement patterns in a title stay literal.
+    expect(pageTitle("Understanding $& and $1")).toBe(`Understanding $& and $1 | ${SITE_NAME}`);
   });
 });
 

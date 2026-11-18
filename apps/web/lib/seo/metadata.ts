@@ -9,7 +9,7 @@ export const OG_LOCALES = { ar: "ar_SA", en: "en_US" } as const satisfies Record
 export const TITLE_TEMPLATE = `%s | ${SITE_NAME}`;
 
 export function pageTitle(title: string | undefined): string {
-  return title && title !== SITE_NAME ? TITLE_TEMPLATE.replace("%s", title) : SITE_NAME;
+  return title && title !== SITE_NAME ? TITLE_TEMPLATE.replace("%s", () => title) : SITE_NAME;
 }
 
 /** The page's absolute URL in one language. `path` has no locale: "/" or "/about". */
