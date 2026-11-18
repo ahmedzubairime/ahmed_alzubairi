@@ -190,6 +190,17 @@ describe("signed-out request round trip", () => {
     expect(screen.getByRole("dialog")).toBeTruthy();
   });
 
+  it("drops a request still waiting for Clerk once the visitor has left the page", () => {
+    auth.isLoaded = false;
+    const { unmount } = list();
+    fireEvent.click(screen.getByRole("button", { name: "Request to view: Course certificate" }));
+    expect(clerkWaiters).toHaveLength(1);
+    unmount();
+    auth.isLoaded = true;
+    act(() => clerkWaiters.splice(0).forEach((resolve) => resolve(auth)));
+    return Promise.resolve().then(() => expect(router.push).not.toHaveBeenCalled());
+  });
+
   it("a signed-out visitor back from a stale link gets the selection, not the dialog", () => {
     search.value = `request=${A}`;
     list();

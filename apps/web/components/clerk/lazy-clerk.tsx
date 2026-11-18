@@ -1,11 +1,29 @@
 "use client";
 
 import { useLocale } from "next-intl";
-import { lazy, Suspense, useEffect, useState } from "react";
+import { Component, lazy, Suspense, useEffect, useState, type ReactNode } from "react";
 import { signInPath, signUpPath } from "@/lib/auth/return-path";
 import { onClerkRequest } from "./auth-state";
 
 const PublicClerk = lazy(() => import("./public-clerk"));
+
+/**
+ * Clerk's chunk can fail to download. The island then renders nothing and the
+ * public page stays as it is: its auth-aware controls keep the signed-out
+ * state, which is always safe.
+ */
+class IslandBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  override state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  override componentDidCatch(error: unknown) {
+    console.error("Clerk didn't load on this page", error);
+  }
+  override render() {
+    return this.state.failed ? null : this.props.children;
+  }
+}
 
 /** The interactions that load Clerk at once: the visitor is using the page. */
 export const FIRST_INTERACTION = ["pointerdown", "keydown", "touchstart"] as const;
@@ -45,12 +63,14 @@ export function LazyClerk() {
 
   if (!load) return null;
   return (
-    <Suspense fallback={null}>
-      <PublicClerk
-        signInUrl={signInPath(locale)}
-        signUpUrl={signUpPath(locale)}
-        afterSignOutUrl={`/${locale}`}
-      />
-    </Suspense>
+    <IslandBoundary>
+      <Suspense fallback={null}>
+        <PublicClerk
+          signInUrl={signInPath(locale)}
+          signUpUrl={signUpPath(locale)}
+          afterSignOutUrl={`/${locale}`}
+        />
+      </Suspense>
+    </IslandBoundary>
   );
 }

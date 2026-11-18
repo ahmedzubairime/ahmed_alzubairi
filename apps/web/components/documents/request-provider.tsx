@@ -9,6 +9,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -83,6 +84,15 @@ export function DocumentRequestProvider({
     setFromLink([]);
   }
 
+  // A request waiting for Clerk is dropped if the visitor leaves the page first.
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
   const start = useCallback(
     (ids: readonly string[]) => {
       if (ids.length === 0) return;
@@ -100,7 +110,10 @@ export function DocumentRequestProvider({
       // loads it and waits, since a signed-in visitor would look signed out.
       const now = readAuth();
       if (now.isLoaded) act(now);
-      else void whenClerkLoaded().then(act);
+      else
+        void whenClerkLoaded().then((loaded) => {
+          if (mounted.current) act(loaded);
+        });
     },
     [locale, router],
   );
