@@ -20,6 +20,7 @@ const { ConsentChoice } = await import("./consent-choice");
 
 afterEach(() => {
   cleanup();
+  document.body.innerHTML = "";
   localStorage.clear();
 });
 
@@ -30,8 +31,33 @@ const tree = (locale: "ar" | "en" = "en") => (
 );
 
 describe("ConsentChoice", () => {
-  it("renders nothing on the server: the choice is read in the browser only", () => {
-    expect(renderToString(tree())).toBe("");
+  it("is in the server HTML, so it paints with the page, followed by its hide script", () => {
+    const html = renderToString(tree());
+    expect(html).toContain(`aria-label="${en.label}"`);
+    expect(html).toContain("<script>");
+    expect(html.indexOf("data-consent-banner")).toBeLessThan(html.indexOf("<script>"));
+  });
+
+  // The server HTML as the browser parses it: the script runs right after the banner.
+  const parseServerHtml = () => {
+    document.body.innerHTML = renderToString(tree());
+    const script = document.body.querySelector("script")!;
+    Object.defineProperty(document, "currentScript", { configurable: true, value: script });
+    try {
+      new Function(script.textContent ?? "")();
+    } finally {
+      Object.defineProperty(document, "currentScript", { configurable: true, value: null });
+    }
+    return document.body.querySelector<HTMLElement>("[data-consent-banner]")!;
+  };
+
+  it.each(["granted", "denied"])("hides before the first paint when the choice (%s) is stored", (choice) => {
+    localStorage.setItem("consent", choice);
+    expect(parseServerHtml().hidden).toBe(true);
+  });
+
+  it("stays visible before hydration for a visitor who hasn't chosen", () => {
+    expect(parseServerHtml().hidden).toBe(false);
   });
 
   it("shows the banner until a choice, with the privacy link", () => {

@@ -2,9 +2,9 @@
 
 import { useState, useSyncExternalStore } from "react";
 import { ConsentBanner } from "@/components/consent-banner";
-import { CONSENT_EVENT, readConsent, writeConsent, type Consent } from "@/lib/analytics/consent";
+import { CONSENT_EVENT, CONSENT_KEY, readConsent, writeConsent, type Consent } from "@/lib/analytics/consent";
 
-/** On the server and before hydration the choice is unknown: no banner. */
+/** On the server and while hydrating, the choice isn't known yet. */
 const UNKNOWN = "unknown";
 
 function subscribe(onChange: () => void) {
@@ -17,25 +17,45 @@ function subscribe(onChange: () => void) {
 }
 
 /**
+ * Runs as the page is parsed, right after the banner's markup and before the
+ * first paint: a visitor who already chose never sees it, not even for a
+ * frame. A constant, never stored content. Storage can be blocked: the banner
+ * then stays, as it does after hydration.
+ */
+export const HIDE_IF_CHOSEN = `try{var v=localStorage.getItem(${JSON.stringify(CONSENT_KEY)});if(v==="granted"||v==="denied")document.currentScript.previousElementSibling.hidden=true}catch(e){}`;
+
+/**
  * Shows DaVinci's cookie banner (§6.25) until the visitor chooses, and saves
- * the choice for the analytics provider. The choice is read in the browser
- * only. When storage is blocked, the banner closes for this page once chosen.
+ * the choice for the analytics provider.
+ *
+ * The banner is in the server HTML (§13 Performance): it paints with the page
+ * instead of after the scripts hydrate, which on a slow phone is seconds
+ * later. The inline script hides it at once for a visitor who already chose;
+ * after hydration the stored choice decides, as before.
  */
 export function ConsentChoice() {
   const stored = useSyncExternalStore<Consent | null | typeof UNKNOWN>(subscribe, () => readConsent(), () => UNKNOWN);
   const [chosen, setChosen] = useState(false);
-  const open = stored === null && !chosen;
+  const open = stored !== "granted" && stored !== "denied" && !chosen;
   const choose = (consent: Consent) => {
     setChosen(true);
     writeConsent(consent);
   };
   return (
-    <ConsentBanner
-      open={open}
-      onAccept={() => choose("granted")}
-      onDecline={() => choose("denied")}
-      privacyHref="/privacy"
-    />
+    <>
+      {/*
+        A box-less wrapper: the banner itself is fixed. The script may hide it
+        before hydration; whenever the banner is open, React shows it again.
+      */}
+      <div data-consent-banner="" hidden={open ? false : undefined} suppressHydrationWarning>
+        <ConsentBanner
+          open={open}
+          onAccept={() => choose("granted")}
+          onDecline={() => choose("denied")}
+          privacyHref="/privacy"
+        />
+      </div>
+      <script dangerouslySetInnerHTML={{ __html: HIDE_IF_CHOSEN }} suppressHydrationWarning />
+    </>
   );
 }
-
