@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -14,10 +15,12 @@ vi.mock("@/i18n/navigation", () => ({
   ),
 }));
 
-// jsdom has no layout: the banner's top edge is set by hand, and the
-// ResizeObserver callback is kept so a test can fire it.
+// jsdom has no layout: the banner's top edge is set by hand. The
+// ResizeObserver mock keeps its callback and the element it observes, so a
+// test can check what is observed and fire the callback.
 let bannerTop = 0;
 let observed: (() => void) | null = null;
+let observedTarget: Element | null = null;
 
 beforeEach(() => {
   bannerTop = window.innerHeight - 120;
@@ -27,12 +30,17 @@ beforeEach(() => {
   vi.stubGlobal(
     "ResizeObserver",
     class {
+      callback: () => void;
       constructor(callback: () => void) {
-        observed = callback;
+        this.callback = callback;
       }
-      observe() {}
+      observe(target: Element) {
+        observedTarget = target;
+        observed = this.callback;
+      }
       disconnect() {
         observed = null;
+        observedTarget = null;
       }
     },
   );
@@ -65,6 +73,7 @@ describe("ConsentBanner spacer", () => {
 
   it("measures again when the banner changes size", () => {
     const { spacer } = renderBanner();
+    expect(observedTarget).toBe(screen.getByRole("region", { name: "Cookies" }));
     bannerTop = window.innerHeight - 78;
     act(() => observed?.());
     expect(spacer()?.style.height).toBe("78px");
@@ -92,25 +101,36 @@ describe("ConsentBanner spacer", () => {
       </NextIntlClientProvider>,
     );
     expect(observed).not.toBeNull();
+    expect(observedTarget).toBe(screen.getByRole("region", { name: "Cookies" }));
     view.rerender(
       <NextIntlClientProvider locale="en" messages={{ Consent: enConsent }}>
         <ConsentBanner open={false} onAccept={() => {}} onDecline={() => {}} privacyHref="/privacy" />
       </NextIntlClientProvider>,
     );
     expect(observed).toBeNull();
+    expect(observedTarget).toBeNull();
   });
 });
 
 describe("ConsentBanner choices", () => {
-  it("keeps accept and decline equal and in Tab order after the privacy link", () => {
+  it("is reached by Tab: privacy link, then accept, then decline", async () => {
+    const user = userEvent.setup();
+    renderBanner();
+    await user.tab();
+    expect(document.activeElement).toBe(screen.getByRole("link", { name: "Privacy policy" }));
+    await user.tab();
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Accept" }));
+    await user.tab();
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Decline" }));
+  });
+
+  it("keeps accept and decline equal, and calls their handlers", () => {
     const { onAccept, onDecline } = renderBanner();
-    const region = screen.getByRole("region", { name: "Cookies" });
-    const focusable = [...region.querySelectorAll<HTMLElement>("a, button")];
-    expect(focusable.map((element) => element.textContent)).toEqual(["Privacy policy", "Accept", "Decline"]);
-    expect(focusable.every((element) => element.tabIndex >= 0)).toBe(true);
-    expect(focusable[1].className).toBe(focusable[2].className);
-    fireEvent.click(focusable[1]);
-    fireEvent.click(focusable[2]);
+    const accept = screen.getByRole("button", { name: "Accept" });
+    const decline = screen.getByRole("button", { name: "Decline" });
+    expect(accept.className).toBe(decline.className);
+    fireEvent.click(accept);
+    fireEvent.click(decline);
     expect(onAccept).toHaveBeenCalledOnce();
     expect(onDecline).toHaveBeenCalledOnce();
   });
