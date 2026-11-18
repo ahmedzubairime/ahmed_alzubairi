@@ -8,6 +8,7 @@ import { KIT_TEXT } from "./content";
 import { KitDemo } from "./kit-demo";
 import { LISTING_TEXT } from "./listing-content";
 import { ListingDemo } from "./listing-demo";
+import { StatsDemo } from "./stats-demo";
 import { WorkspaceDemo } from "./workspace-demo";
 
 // Dev only: local `next dev` and Vercel previews show it, production returns
@@ -19,7 +20,7 @@ export default async function UiKitPage({ params }: { params: Promise<{ locale: 
   if (process.env.VERCEL_ENV === "production") notFound();
   const { locale } = await params;
   if (!hasLocale(routing.locales, locale)) notFound();
-  const { Workspace } = await getMessages();
+  const { Workspace, Consent } = await getMessages();
 
   return (
     <>
@@ -35,6 +36,13 @@ export default async function UiKitPage({ params }: { params: Promise<{ locale: 
         <div className="mt-10 border-t border-text/10 pt-10">
           <ListingDemo text={LISTING_TEXT[locale]} />
         </div>
+        {/* The banner reads its own namespace; the rest of the demo is sample copy. */}
+        <NextIntlClientProvider locale={locale} messages={{ Consent }}>
+          {/* Room at the bottom, so the open banner never hides the last section. */}
+          <div className="mt-10 pb-40 sm:pb-28">
+            <StatsDemo />
+          </div>
+        </NextIntlClientProvider>
       </main>
     </>
   );

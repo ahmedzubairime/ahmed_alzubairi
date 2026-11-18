@@ -1,0 +1,7 @@
+{
+  "label": "Cookies",
+  "text": "We use PostHog for anonymous visit statistics. If you decline, the site stays cookie-free.",
+  "privacy": "Privacy policy",
+  "accept": "Accept",
+  "decline": "Decline"
+}
