@@ -223,6 +223,10 @@ describe("loadStatistics", () => {
       "or",
       'created_at.lt."2026-11-02T00:00:00+00:00",and(created_at.eq."2026-11-02T00:00:00+00:00",id.gt."id-00500")',
     ]);
+    expect(reads[2]!.filters).toContainEqual([
+      "or",
+      'created_at.lt."2026-11-02T00:00:00+00:00",and(created_at.eq."2026-11-02T00:00:00+00:00",id.gt."id-01000")',
+    ]);
     expect(reads[3]!.filters).toContainEqual([
       "or",
       'created_at.lt."2026-11-02T00:00:00+00:00",and(created_at.eq."2026-11-02T00:00:00+00:00",id.gt."id-01200")',
@@ -244,14 +248,21 @@ describe("loadStatistics", () => {
   });
 
   it("shows first reply as unavailable when a later page fails", async () => {
-    let call = 0;
+    let reads = 0;
     const log = vi.fn();
-    const { client } = fakeClient(() =>
-      ++call === 1
+    const { client } = fakeClient((query) => {
+      // Monthly head counts succeed and don't count as reads.
+      if (query.select[0] !== "id, created_at, first_reply_at") return { count: 1, error: null };
+      reads++;
+      return reads === 1
         ? { data: [{ id: "a", created_at: "2026-11-02T00:00:00Z", first_reply_at: "2026-11-02T01:00:00Z" }], error: null }
-        : { data: null, error: { code: "57014" } },
-    );
+        : { data: null, error: { code: "57014" } };
+    });
     const { kpis } = await loadStatistics(new Set([PERMISSIONS.CONSULTATIONS_VIEW_ALL]), "UTC", { client, now: NOW, posthog: posthog(), log });
+    expect(reads).toBe(2);
     expect(kpis.find((kpi) => kpi.key === "firstReply")).toEqual({ key: "firstReply", unavailable: true });
+    // The partial sample isn't shown; the other KPI still is.
+    expect(kpis.find((kpi) => kpi.key === "consultations")).toMatchObject({ months: Array(12).fill(1) });
+    expect(log).toHaveBeenCalledWith("statistics: firstReply unavailable");
   });
 });
