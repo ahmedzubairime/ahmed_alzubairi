@@ -109,6 +109,18 @@ describe("form fields", () => {
   });
 });
 
+describe("LanguageTabs heading level", () => {
+  it("uses h3 for the panel headings by default, and the level it's given", () => {
+    const panels = { arabic: { label: "العربية", content: <p>نص</p> }, english: { label: "English", content: <p>Text</p> } };
+    const { container, unmount } = render(<LanguageTabs label="Language" {...panels} />);
+    expect(container.querySelectorAll("h3")).toHaveLength(2);
+    unmount();
+    const second = render(<LanguageTabs label="Language" headingLevel={2} {...panels} />);
+    expect(second.container.querySelectorAll("h2")).toHaveLength(2);
+    expect(second.container.querySelectorAll("h3")).toHaveLength(0);
+  });
+});
+
 describe("LanguageTabs", () => {
   const tabs = (
     <LanguageTabs
