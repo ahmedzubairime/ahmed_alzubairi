@@ -1,4 +1,7 @@
-import { cx } from "./cx";
+"use client";
+
+import { useId, useState } from "react";
+import { cx, FOCUS_RING } from "./cx";
 
 export type MonthlyValue = {
   /** The month, formatted by the caller with Intl, e.g. "Mar". */
@@ -25,9 +28,11 @@ export function niceScale(max: number, wholeNumbers = true): { top: number; tick
  * A small bar chart of 6–12 monthly values, oldest first. Bars follow the
  * page direction, so time runs right to left in Arabic.
  *
- * The plot is hidden from screen readers; a visually hidden table carries
- * every value. The latest month's value is printed on its bar, the others
- * show on hover. Nothing animates, so reduce motion has nothing to stop.
+ * The plot is hidden from screen readers; a table carries every value. It is
+ * visually hidden until the "show values" button reveals it, so keyboard and
+ * touch users get every value too. The latest month's value is printed on its
+ * bar, the others also show on hover. Nothing animates, so reduce motion has
+ * nothing to stop.
  */
 export function MonthlyChart({
   title,
@@ -38,6 +43,7 @@ export function MonthlyChart({
   monthHeader,
   valueHeader,
   emptyLabel,
+  tableToggleLabel,
   className,
 }: {
   title: string;
@@ -47,13 +53,17 @@ export function MonthlyChart({
   locale: string;
   /** Options for Intl.NumberFormat, e.g. one decimal for averages. */
   valueFormat?: Intl.NumberFormatOptions;
-  /** Column headers of the screen-reader table. */
+  /** Column headers of the values table. */
   monthHeader: string;
   valueHeader: string;
   /** Shown when there are no months to plot. */
   emptyLabel: string;
+  /** The button that shows the values as a table, e.g. "Show values". */
+  tableToggleLabel: string;
   className?: string;
 }) {
+  const [tableShown, setTableShown] = useState(false);
+  const tableId = useId();
   const format = new Intl.NumberFormat(locale, valueFormat);
   const max = Math.max(0, ...data.map((point) => point.value));
   const wholeNumbers = data.every((point) => Number.isInteger(point.value));
@@ -140,18 +150,36 @@ export function MonthlyChart({
             </ol>
           </div>
 
-          <table className="sr-only">
+          <div className="mt-4 flex justify-end">
+            <button
+              type="button"
+              aria-controls={tableId}
+              aria-pressed={tableShown}
+              onClick={() => setTableShown((shown) => !shown)}
+              className={cx("rounded-sm text-sm font-semibold underline underline-offset-4", FOCUS_RING)}
+            >
+              {tableToggleLabel}
+            </button>
+          </div>
+          {/* Always in the accessibility tree; the button only makes it visible. */}
+          <table id={tableId} className={tableShown ? "mt-3 w-full text-sm" : "sr-only"}>
             <thead>
               <tr>
-                <th scope="col">{monthHeader}</th>
-                <th scope="col">{valueHeader}</th>
+                <th scope="col" className="border-b border-text/20 py-1.5 text-start font-semibold text-text-secondary">
+                  {monthHeader}
+                </th>
+                <th scope="col" className="border-b border-text/20 py-1.5 text-end font-semibold text-text-secondary">
+                  {valueHeader}
+                </th>
               </tr>
             </thead>
             <tbody>
               {data.map((point, index) => (
-                <tr key={index}>
-                  <th scope="row">{point.label}</th>
-                  <td>{format.format(point.value)}</td>
+                <tr key={index} className="border-b border-text/10 last:border-b-0">
+                  <th scope="row" className="py-1.5 text-start font-normal">
+                    {point.label}
+                  </th>
+                  <td className="py-1.5 text-end tabular-nums">{format.format(point.value)}</td>
                 </tr>
               ))}
             </tbody>

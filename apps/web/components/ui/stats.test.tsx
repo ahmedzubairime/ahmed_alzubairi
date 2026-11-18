@@ -73,7 +73,7 @@ describe("niceScale", () => {
 });
 
 describe("MonthlyChart", () => {
-  const props = { title: "Requests", locale: "en", monthHeader: "Month", valueHeader: "Requests", emptyLabel: "No data yet." };
+  const props = { title: "Requests", locale: "en", monthHeader: "Month", valueHeader: "Requests", emptyLabel: "No data yet.", tableToggleLabel: "Show values" };
 
   it("gives screen readers a table of every month", () => {
     const data = ["Jan", "Feb", "Mar"].map((label, index) => ({ label, value: (index + 1) * 1000 }));
@@ -83,6 +83,16 @@ describe("MonthlyChart", () => {
     expect(rows).toHaveLength(4);
     expect(within(rows[3]).getByRole("rowheader").textContent).toBe("Mar");
     expect(within(rows[3]).getByRole("cell").textContent).toBe("3,000");
+  });
+
+  it("shows the table on a button press, for keyboard and touch users", () => {
+    render(<MonthlyChart {...props} data={[{ label: "Jan", value: 20 }, { label: "Feb", value: 40 }]} />);
+    const toggle = screen.getByRole("button", { name: "Show values" });
+    expect(screen.getByRole("table").className).toBe("sr-only");
+    expect(toggle.getAttribute("aria-controls")).toBe(screen.getByRole("table").id);
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("table").className).not.toContain("sr-only");
   });
 
   it("hides the drawn plot from screen readers", () => {

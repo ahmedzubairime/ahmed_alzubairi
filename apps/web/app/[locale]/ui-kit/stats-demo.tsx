@@ -29,6 +29,7 @@ const SAMPLE = {
     empty: "لا توجد بيانات لهذه الفترة بعد.",
     month: "الشهر",
     requests: "الطلبات",
+    showValues: "عرض القيم",
     banner: "شريط ملفات تعريف الارتباط",
     bannerIntro: "مثبّت أسفل الصفحة، والزرّان بالوزن نفسه. يمكن الوصول إليهما بمفتاح Tab ولا يحبس التركيز.",
     showBanner: "إظهار الشريط",
@@ -58,6 +59,7 @@ const SAMPLE = {
     empty: "No data for this period yet.",
     month: "Month",
     requests: "Requests",
+    showValues: "Show values",
     banner: "Cookie banner",
     bannerIntro: "Fixed to the bottom, with two buttons of the same weight. Both are reachable by Tab, and focus isn't trapped.",
     showBanner: "Show the banner",
@@ -138,8 +140,9 @@ export function StatsDemo() {
             monthHeader={t.month}
             valueHeader={t.requests}
             emptyLabel={t.empty}
+            tableToggleLabel={t.showValues}
           />
-          <MonthlyChart title={t.emptyTitle} data={[]} locale={locale} monthHeader={t.month} valueHeader={t.requests} emptyLabel={t.empty} />
+          <MonthlyChart title={t.emptyTitle} data={[]} locale={locale} monthHeader={t.month} valueHeader={t.requests} emptyLabel={t.empty} tableToggleLabel={t.showValues} />
         </div>
       </Block>
 
