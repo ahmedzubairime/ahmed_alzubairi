@@ -7,6 +7,7 @@ import { LanguageFallback } from "@/components/language-switch";
 import { MAIN_CONTENT_ID } from "@/components/skip-link";
 import { otherLocale, routing } from "@/i18n/routing";
 import { getExpertiseAreas, getProject } from "@/lib/content";
+import { metaDescription, pageMetadata } from "@/lib/seo";
 
 type Props = { params: Promise<{ locale: string; slug: string }> };
 
@@ -23,7 +24,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!hasLocale(routing.locales, locale)) return {};
   await connection();
   const project = await getProject(routeSlug(slug), locale);
-  return project ? { title: project.title } : {};
+  if (!project) return {};
+  const cover = project.images[0];
+  return pageMetadata({
+    locale,
+    path: `/projects/${encodeURIComponent(project.slug)}`,
+    title: project.title,
+    description: metaDescription(project.goal),
+    languages: project.availableIn,
+    ...(cover ? { image: { url: cover.url, ...(cover.alt ? { alt: cover.alt } : {}) } } : {}),
+  });
 }
 
 export default async function ProjectPage({ params }: Props) {

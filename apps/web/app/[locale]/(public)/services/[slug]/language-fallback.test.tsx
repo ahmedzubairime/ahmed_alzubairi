@@ -6,7 +6,18 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 // no translation (§6.1). Their own content is covered by the pages' tests.
 const mocks = vi.hoisted(() => ({ availableIn: ["ar", "en"] as string[], missing: false }));
 const item = () =>
-  mocks.missing ? null : { id: "id-1", slug: "x", expertiseId: null, availableIn: mocks.availableIn };
+  mocks.missing
+    ? null
+    : {
+        id: "id-1",
+        slug: "x",
+        expertiseId: null,
+        title: "Item",
+        summary: "Summary",
+        goal: "Goal",
+        images: [],
+        availableIn: mocks.availableIn,
+      };
 
 vi.mock("next/server", () => ({ connection: async () => {} }));
 vi.mock("next/navigation", () => ({
@@ -50,6 +61,7 @@ const routes = [
 const params = (locale: string) => ({ params: Promise.resolve({ locale, slug: "x" }) });
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   cleanup();
   mocks.availableIn = ["ar", "en"];
   mocks.missing = false;
@@ -79,5 +91,31 @@ describe.each(routes)("%s detail page", (section, route) => {
     mocks.missing = true;
     await expect(route.default(params(locale))).rejects.toThrow("NOT_FOUND");
     expect(await route.generateMetadata(params(locale))).toEqual({});
+  });
+
+  describe("hreflang (§6.24)", () => {
+    const meta = async (locale: string) => {
+      vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://site.example");
+      return route.generateMetadata(params(locale));
+    };
+
+    it("lists both languages and x-default → Arabic when the item has both", async () => {
+      expect((await meta("en")).alternates).toEqual({
+        canonical: `https://site.example/en/${section}/x`,
+        languages: {
+          ar: `https://site.example/ar/${section}/x`,
+          en: `https://site.example/en/${section}/x`,
+          "x-default": `https://site.example/ar/${section}/x`,
+        },
+      });
+    });
+
+    it("lists no alternate for a single-language item, which stays indexable", async () => {
+      mocks.availableIn = ["ar"];
+      const result = await meta("ar");
+      expect(result.alternates).toEqual({ canonical: `https://site.example/ar/${section}/x` });
+      expect(result.robots).toBeUndefined();
+      expect(result.title).toEqual({ absolute: "Item | Ahmed Alzubairi" });
+    });
   });
 });

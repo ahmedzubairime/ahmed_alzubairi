@@ -1,5 +1,63 @@
 {
   "description": "Consulting in management, governance, humanitarian work and development for ministries, international organizations and institutions.",
   "ogTagline": "Consulting in management, governance, humanitarian work and development",
-  "ogAlt": "{siteName}: consulting in management, governance, humanitarian work and development"
+  "ogAlt": "{siteName}: consulting in management, governance, humanitarian work and development",
+  "pages": {
+    "about": {
+      "title": "About",
+      "description": "Professional background, qualifications and career in management, governance, humanitarian work and development."
+    },
+    "expertise": {
+      "title": "Areas of expertise",
+      "description": "Areas of expertise in management, governance, humanitarian work and development, and what each one covers."
+    },
+    "services": {
+      "title": "Services",
+      "description": "Consulting services for ministries, international organizations and institutions: who they serve, deliverables and stages."
+    },
+    "projects": {
+      "title": "Past projects",
+      "description": "Projects delivered with government, international and local organizations: the goal, the role and the results."
+    },
+    "training": {
+      "title": "Training",
+      "description": "In-person and live online courses, and custom training for organizations."
+    },
+    "blog": {
+      "title": "Blog",
+      "description": "Articles on management, governance, humanitarian work and development."
+    },
+    "resources": {
+      "title": "Free resources",
+      "description": "Guides, templates and working papers on management, governance, humanitarian work and development, free to download."
+    },
+    "media": {
+      "title": "Media and events",
+      "description": "Interviews, conferences, talks and workshops."
+    },
+    "clients": {
+      "title": "Clients and testimonials",
+      "description": "Organizations worked with, and client testimonials published with their consent."
+    },
+    "documents": {
+      "title": "Documents and certificates",
+      "description": "The list of documents, certificates and recommendation letters, with a way to request access."
+    },
+    "faq": {
+      "title": "FAQ",
+      "description": "Answers to common questions about consultations, services, training and documents."
+    },
+    "contact": {
+      "title": "Contact",
+      "description": "Get in touch or request a consultation in management, governance, humanitarian work and development."
+    },
+    "privacy": {
+      "title": "Privacy policy",
+      "description": "How personal data is collected, used and protected on this site."
+    },
+    "terms": {
+      "title": "Terms of use",
+      "description": "Terms for using the site, accounts, consultation requests and documents."
+    }
+  }
 }

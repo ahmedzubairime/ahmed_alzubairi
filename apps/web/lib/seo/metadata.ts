@@ -36,16 +36,25 @@ export function defaultOgImage(locale: Locale, alt?: string): PageImage {
 
 export type PageMetadataInput = {
   locale: Locale;
-  /** The page's path without the locale prefix, e.g. "/" or "/services/governance". */
-  path: string;
+  /**
+   * The page's path without the locale prefix, e.g. "/" or "/services/x".
+   * A page whose path differs per language (a post's per-language slug) gives
+   * one per language; a language without a path is never an alternate.
+   */
+  path: string | Partial<Record<Locale, string>>;
   title?: string;
   description?: string;
-  /** Only the languages this page really has (§6.24). The current one is always counted. */
+  /**
+   * Only the languages this page really has (§6.24). When `locale` isn't one
+   * of them, the page shows a fallback: it gets `noindex` and no alternates.
+   */
   languages: readonly Locale[];
   /** Defaults to the locale's image from `opengraph-image`. */
   image?: PageImage;
   noindex?: boolean;
   type?: "website" | "article";
+  /** UTC, for an article. */
+  publishedTime?: string | null;
 };
 
 /**
@@ -62,15 +71,21 @@ export function pageMetadata({
   image,
   noindex = false,
   type = "website",
+  publishedTime,
 }: PageMetadataInput): Metadata {
-  const canonical = localizedUrl(locale, path);
-  const available = [...new Set<Locale>([locale, ...languages])];
+  const pathIn = (language: Locale) => (typeof path === "string" ? path : path[language]);
+  const canonical = localizedUrl(locale, pathIn(locale) ?? "/");
+  const isFallback = !languages.includes(locale) || pathIn(locale) === undefined;
+  // A fallback announces no alternates; it isn't a real version of the page.
+  const available: Locale[] = isFallback
+    ? [locale]
+    : [...new Set(languages)].filter((language) => pathIn(language) !== undefined);
   const fullTitle = pageTitle(title);
 
   const hreflang: Record<string, string> = {};
-  for (const language of available) hreflang[language] = localizedUrl(language, path);
+  for (const language of available) hreflang[language] = localizedUrl(language, pathIn(language)!);
   if (available.includes("ar") && available.includes("en")) {
-    hreflang["x-default"] = localizedUrl("ar", path);
+    hreflang["x-default"] = hreflang["ar"]!;
   }
 
   const images = [image ?? defaultOgImage(locale)];
@@ -91,6 +106,7 @@ export function pageMetadata({
       locale: OG_LOCALES[locale],
       alternateLocale: available.filter((l) => l !== locale).map((l) => OG_LOCALES[l]),
       type,
+      ...(type === "article" && publishedTime ? { publishedTime } : {}),
       images,
     },
     twitter: {
@@ -99,8 +115,24 @@ export function pageMetadata({
       ...(description ? { description } : {}),
       images,
     },
-    ...(noindex ? { robots: NOINDEX } : {}),
+    ...(noindex || isFallback ? { robots: NOINDEX } : {}),
   };
+}
+
+/** Meta descriptions past this length are cut by search engines anyway. */
+export const DESCRIPTION_MAX = 160;
+
+/**
+ * Content text as a meta description: whitespace folded, cut on a word
+ * boundary at `DESCRIPTION_MAX` with an ellipsis. Undefined when blank.
+ */
+export function metaDescription(text: string | null | undefined): string | undefined {
+  const folded = text?.replace(/\s+/g, " ").trim();
+  if (!folded) return undefined;
+  if (folded.length <= DESCRIPTION_MAX) return folded;
+  const cut = folded.slice(0, DESCRIPTION_MAX - 1);
+  const space = cut.lastIndexOf(" ");
+  return `${(space > DESCRIPTION_MAX / 2 ? cut.slice(0, space) : cut).trimEnd()}…`;
 }
 
 /** `<meta name="robots" content="noindex, nofollow">`. */

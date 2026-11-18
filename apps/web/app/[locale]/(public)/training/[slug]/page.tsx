@@ -16,6 +16,7 @@ import { TRAINING_PATH } from "@/components/training/paths";
 import { RegistrationPanel } from "@/components/training/registration-panel";
 import { otherLocale, routing } from "@/i18n/routing";
 import { getCourse } from "@/lib/content/courses";
+import { metaDescription, pageMetadata } from "@/lib/seo";
 
 type Props = { params: Promise<{ locale: string; slug: string }> };
 
@@ -32,7 +33,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!hasLocale(routing.locales, locale)) return {};
   await connection();
   const course = await getCourse(routeSlug(slug), locale);
-  return course ? { title: course.title, description: course.description.slice(0, 200) } : {};
+  if (!course) return {};
+  return pageMetadata({
+    locale,
+    path: `${TRAINING_PATH}/${encodeURIComponent(course.slug)}`,
+    title: course.title,
+    description: metaDescription(course.description),
+    languages: course.availableIn,
+  });
 }
 
 /**

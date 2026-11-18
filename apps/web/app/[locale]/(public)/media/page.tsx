@@ -10,6 +10,7 @@ import { MAIN_CONTENT_ID } from "@/components/skip-link";
 import { Skeleton } from "@/components/ui";
 import { routing } from "@/i18n/routing";
 import { getMediaItems } from "@/lib/content/media";
+import { staticPageMetadata } from "@/lib/seo/static-pages";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 type Props = { params: Promise<{ locale: string }>; searchParams: Promise<SearchParams> };
@@ -17,8 +18,7 @@ type Props = { params: Promise<{ locale: string }>; searchParams: Promise<Search
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
   if (!hasLocale(routing.locales, locale)) return {};
-  const t = await getTranslations({ locale, namespace: "Media" });
-  return { title: t("title"), description: t("description") };
+  return staticPageMetadata(locale, "media");
 }
 
 /**

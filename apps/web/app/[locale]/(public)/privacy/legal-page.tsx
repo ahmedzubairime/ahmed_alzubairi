@@ -9,6 +9,7 @@ import { RichText } from "@/components/public/rich-text";
 import { MAIN_CONTENT_ID } from "@/components/skip-link";
 import { otherLocale, routing } from "@/i18n/routing";
 import { getPage } from "@/lib/content";
+import { staticPageMetadata } from "@/lib/seo/static-pages";
 
 export type LegalKey = Extract<PageKey, "privacy" | "terms">;
 type Props = { params: Promise<{ locale: string }> };
@@ -23,7 +24,8 @@ export function legalMetadata(key: LegalKey) {
     if (!hasLocale(routing.locales, locale)) return {};
     await connection();
     const page = await getPage(key, locale);
-    return page ? { title: page.title } : {};
+    // hreflang only for the languages the page's content is published in.
+    return page ? staticPageMetadata(locale, key, page.availableIn) : {};
   };
 }
 
