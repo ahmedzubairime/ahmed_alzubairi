@@ -129,5 +129,5 @@ export default clerkMiddleware(async (auth, request) => {
 
 export const config = {
   // Every page and API route, but not Next or Vercel internals, or files.
-  matcher: ["/((?!_next|_vercel|.*\\..*).*)", "/api/(.*)"],
+  matcher: ["/((?!_next|_vercel|ingest/|.*\\..*).*)", "/api/(.*)"],
 };
