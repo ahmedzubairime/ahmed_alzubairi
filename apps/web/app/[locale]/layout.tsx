@@ -1,4 +1,3 @@
-import { ClerkProvider } from "@clerk/nextjs";
 import { SITE_NAME } from "@repo/shared";
 import type { Metadata } from "next";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
@@ -9,9 +8,6 @@ import { Analytics } from "@/components/analytics/analytics";
 import { ConsentChoice } from "@/components/analytics/consent-choice";
 import { ThemeProvider } from "@/components/theme-provider";
 import { localeDirection, routing } from "@/i18n/routing";
-import { clerkAppearance } from "@/lib/auth/appearance";
-import { clerkLocalization } from "@/lib/auth/localization";
-import { signInPath, signUpPath } from "@/lib/auth/return-path";
 import { OG_LOCALES, siteUrl, TITLE_TEMPLATE } from "@/lib/seo";
 import { fontVariables } from "../fonts";
 import "../globals.css";
@@ -51,7 +47,7 @@ export default async function LocaleLayout({
   }
 
   // Only what client components use, to keep the browser bundle small.
-  const { Header, Nav, Error: ErrorMessages, Clerk, Consent } = await getMessages();
+  const { Header, Nav, Error: ErrorMessages, Consent } = await getMessages();
 
   // next-themes sets the class on <html> before hydration, so React must
   // accept the difference from the server's markup.
@@ -67,17 +63,14 @@ export default async function LocaleLayout({
           locale={locale}
           messages={{ Header, Nav, Error: ErrorMessages, Consent }}
         >
-          <ClerkProvider
-            localization={clerkLocalization(locale, Clerk)}
-            appearance={clerkAppearance}
-            signInUrl={signInPath(locale)}
-            signUpUrl={signUpPath(locale)}
-            afterSignOutUrl={`/${locale}`}
-          >
-            <ThemeProvider>{children}</ThemeProvider>
-            <ConsentChoice />
-            <Analytics />
-          </ClerkProvider>
+          {/*
+            Clerk isn't loaded here (§13 Performance): account, dashboard and
+            the auth pages mount it in their layouts (AppClerkProvider), and
+            public pages load it after idle (LazyClerk).
+          */}
+          <ThemeProvider>{children}</ThemeProvider>
+          <ConsentChoice />
+          <Analytics />
         </NextIntlClientProvider>
       </body>
     </html>

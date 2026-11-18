@@ -1,34 +1,31 @@
 "use client";
 
-import { useAuth } from "@clerk/nextjs";
 import { useTranslations } from "next-intl";
+import { requestClerk, useAuthState } from "@/components/clerk/auth-state";
 import { cx, FOCUS_RING } from "@/components/ui/cx";
 import { Link } from "@/i18n/navigation";
 
 const CLASSES =
   "inline-flex h-9 items-center rounded-md px-2 text-sm font-semibold whitespace-nowrap";
 
-// Client-side, so the public shell stays static.
+/**
+ * Sign-in or account. Clerk loads after the page (§13 Performance), so it
+ * shows the signed-out link first: always safe, as the sign-in page sends a
+ * signed-in visitor on. Pointing at it or focusing it loads Clerk at once.
+ */
 export function AuthLink() {
   const t = useTranslations("Header");
-  const { isLoaded, isSignedIn } = useAuth();
-
-  // Until Clerk loads, a signed-in visitor would see the sign-in link. Hold the
-  // space with nothing to click instead.
-  if (!isLoaded) {
-    return (
-      <span aria-hidden="true" className={`${CLASSES} invisible`}>
-        {t("signIn")}
-      </span>
-    );
-  }
+  const { isLoaded, isSignedIn } = useAuthState();
+  const signedIn = isLoaded && isSignedIn;
 
   return (
     <Link
-      href={isSignedIn ? "/account" : "/sign-in"}
+      href={signedIn ? "/account" : "/sign-in"}
+      onPointerEnter={requestClerk}
+      onFocus={requestClerk}
       className={cx(CLASSES, "hover:bg-text/10", FOCUS_RING)}
     >
-      {isSignedIn ? t("account") : t("signIn")}
+      {signedIn ? t("account") : t("signIn")}
     </Link>
   );
 }
