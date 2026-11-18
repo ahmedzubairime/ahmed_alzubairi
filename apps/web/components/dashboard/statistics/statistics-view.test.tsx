@@ -75,12 +75,17 @@ describe("StatisticsView", () => {
     expect(screen.getAllByText(en.approximate).length).toBeGreaterThan(0);
   });
 
-  it("shows the approximate note under the tiles only when some month has visitors", async () => {
+  it("shows the approximate note under the tiles only when the visitor tile shows a share", async () => {
     const outsideCharts = () => screen.queryAllByText(en.approximate).filter((element) => !element.closest("figure"));
     await show([{ key: "signupShare", signups: months(2), visitors: months(40) }]);
     expect(outsideCharts()).toHaveLength(1);
     cleanup();
     await show([{ key: "signupShare", signups: Array(12).fill(0), visitors: Array(12).fill(0) }]);
+    expect(outsideCharts()).toHaveLength(0);
+    cleanup();
+    // Visitors earlier, none this month: the tile says so, and the note stays in the chart.
+    await show([{ key: "signupShare", signups: Array(12).fill(1), visitors: [...Array(11).fill(40), 0] }]);
+    expect(screen.getByText(en.kpis.signupShare.noVisitors)).toBeTruthy();
     expect(outsideCharts()).toHaveLength(0);
     cleanup();
     await show([{ key: "signupShare", unavailable: true }]);

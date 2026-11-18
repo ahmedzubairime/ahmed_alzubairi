@@ -125,9 +125,11 @@ export async function StatisticsView({ statistics, locale }: { statistics: Stati
 
   const tiles = statistics.kpis.map(build);
   const charts = tiles.filter((item) => item.chart);
-  // The note qualifies visitor numbers, so only when they are shown.
+  // The note qualifies the visitor tile, so only when it shows a share: the
+  // latest month has measured visitors (the tile's own check). The chart
+  // carries its own note for earlier months.
   const visitors = statistics.kpis.some(
-    (kpi) => kpi.key === "signupShare" && !("unavailable" in kpi) && kpi.visitors.some((count) => count > 0),
+    (kpi) => kpi.key === "signupShare" && !("unavailable" in kpi) && (kpi.visitors.at(-1) ?? 0) > 0,
   );
 
   return (
