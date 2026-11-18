@@ -12,7 +12,8 @@
     "documentRequests": "Document requests",
     "documents": "Documents",
     "team": "Team",
-    "settings": "Settings"
+    "settings": "Settings",
+    "statistics": "Statistics"
   },
   "home": {
     "title": "Dashboard",
@@ -31,7 +32,8 @@
       "documentRequests": "Requests to see protected documents: recommend, decide, withdraw, and the access log.",
       "documents": "Protected certificates, letters and photos: upload, edit and publish.",
       "team": "Members, roles and permissions, and the audit log.",
-      "settings": "Contact details, social links and the CV."
+      "settings": "Contact details, social links and the CV.",
+      "statistics": "Monthly numbers: consultations, reply times, documents, training, newsletter and visitors."
     }
   },
   "refusal": {

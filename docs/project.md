@@ -721,6 +721,8 @@ docs/
 | `ARCJET_KEY` | Server | No |
 | `CRON_SECRET` | Server | No |
 | `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST` | Client + server | Yes |
+| `POSTHOG_PERSONAL_API_KEY` (read-only, scope `query:read`: the statistics page reads PostHog with it) | Server only | No |
+| `POSTHOG_PROJECT_ID` (the PostHog project the statistics page queries) | Server only | No |
 | `NEXT_PUBLIC_APP_URL` | Client + server | Yes |
 
 GitHub Actions secrets, not app variables: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`, `BACKUP_DATABASE_URL`, `BACKUP_ENCRYPTION_KEY`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `BACKUP_STORAGE_ACCESS_KEY_ID`, `BACKUP_STORAGE_SECRET_ACCESS_KEY`.
