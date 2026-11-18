@@ -1,15 +1,12 @@
 import type { MetadataRoute } from "next";
 
-/** Never crawled: private areas, sign-in flows, the UI kit and the API. */
-export const DISALLOWED_PATHS = [
-  "/api/",
-  "/*/account",
-  "/*/dashboard",
-  "/*/sign-in",
-  "/*/sign-up",
-  "/*/onboarding",
-  "/*/ui-kit",
-] as const;
+/**
+ * Never crawled: the API only. Pages that must stay out of search (account,
+ * dashboard, sign-in/up, onboarding, ui-kit) carry `noindex` instead: a
+ * disallow would stop crawlers from reading it, and a linked URL could still
+ * be listed.
+ */
+export const DISALLOWED_PATHS = ["/api/"] as const;
 
 /**
  * `robots.txt`: only production is crawled. Previews, staged builds without

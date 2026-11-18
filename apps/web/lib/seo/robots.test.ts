@@ -10,21 +10,14 @@ describe("robotsFor", () => {
     }
   });
 
-  it("allows the public site in production and hides private areas", () => {
+  it("allows the site in production and blocks only the API", () => {
     const robots = robotsFor("production", origin);
     expect(robots.sitemap).toBe("https://site.example/sitemap.xml");
     expect(robots.rules).toEqual({
       userAgent: "*",
       allow: "/",
-      disallow: [
-        "/api/",
-        "/*/account",
-        "/*/dashboard",
-        "/*/sign-in",
-        "/*/sign-up",
-        "/*/onboarding",
-        "/*/ui-kit",
-      ],
+      // noindex pages stay crawlable so crawlers can read their noindex.
+      disallow: ["/api/"],
     });
   });
 });
