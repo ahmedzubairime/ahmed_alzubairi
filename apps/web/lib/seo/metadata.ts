@@ -145,10 +145,11 @@ export function metaDescription(text: string | null | undefined): string | undef
     }
     cut += segment;
   }
-  // A word that ends right at the cut is whole. Otherwise drop the partial
-  // word; a hard cut only when there's no space at all.
+  // A word that ends right at the cut (a space or punctuation follows) is
+  // whole. Otherwise drop the partial word; a hard cut only with no space.
   const space = cut.lastIndexOf(" ");
-  const kept = next === " " || space <= 0 ? cut : cut.slice(0, space);
+  const splitsWord = /[\p{L}\p{N}\p{M}]/u.test(next);
+  const kept = !splitsWord || space <= 0 ? cut : cut.slice(0, space);
   return `${kept.trimEnd()}…`;
 }
 

@@ -148,6 +148,12 @@ describe("metaDescription", () => {
     // 159 code points: "Read " + 30 × "word " + "this", then a space.
     const text = `Read ${"word ".repeat(30)}this next`;
     expect(metaDescription(text)).toBe(`Read ${"word ".repeat(30)}this…`);
+    // Punctuation after the cut is a word boundary too.
+    expect(metaDescription(`Read ${"word ".repeat(30)}this, then continue`)).toBe(
+      `Read ${"word ".repeat(30)}this…`,
+    );
+    // A cut inside a word still drops it.
+    expect(metaDescription(`Read ${"word ".repeat(30)}thisword`)).toBe(`Read ${"word ".repeat(30).trimEnd()}…`);
   });
 
   it("keeps the last whole word, even early in the text", () => {
