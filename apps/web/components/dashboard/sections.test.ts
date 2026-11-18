@@ -24,7 +24,7 @@ describe("dashboard menu", () => {
 
   it("shows Content, Testimonials and Newsletter to a member with content.manage", () => {
     const keys = visibleSections(new Set([PERMISSIONS.CONTENT_MANAGE])).map((s) => s.key);
-    expect(keys).toEqual(["home", "content", "testimonials", "newsletter"]);
+    expect(keys).toEqual(["home", "content", "testimonials", "newsletter", "statistics"]);
   });
 
   it("shows Newsletter only with content.manage", () => {
@@ -47,6 +47,7 @@ describe("dashboard menu", () => {
       "home",
       "team",
       "settings",
+      "statistics",
     ]);
     const withoutTeam = visibleSections(
       new Set<Permission>([PERMISSIONS.CONTENT_MANAGE, PERMISSIONS.TESTIMONIALS_APPROVE]),
@@ -74,6 +75,7 @@ describe("dashboard menu", () => {
       "home",
       "training",
       "clients",
+      "statistics",
     ]);
   });
 
@@ -121,7 +123,7 @@ describe("dashboard menu", () => {
   it("shows Consultations with consultations.view_all alone", () => {
     expect(
       visibleSections(new Set([PERMISSIONS.CONSULTATIONS_VIEW_ALL])).map((s) => s.key),
-    ).toEqual(["home", "consultations"]);
+    ).toEqual(["home", "consultations", "statistics"]);
   });
 
   it("hides Consultations without view_all or reply, even with assign", () => {
@@ -141,13 +143,14 @@ describe("dashboard menu", () => {
       "testimonials",
       "newsletter",
       "documentRequests",
+      "statistics",
     ]);
   });
 
   it("shows Document requests only with document_requests.recommend", () => {
     expect(
       visibleSections(new Set([PERMISSIONS.DOCUMENT_REQUESTS_RECOMMEND])).map((s) => s.key),
-    ).toEqual(["home", "documentRequests"]);
+    ).toEqual(["home", "documentRequests", "statistics"]);
     const decideOnly = visibleSections(new Set([PERMISSIONS.DOCUMENT_REQUESTS_DECIDE]));
     expect(decideOnly.map((s) => s.key)).toEqual(["home"]);
   });
@@ -179,6 +182,7 @@ describe("dashboard menu", () => {
       "newsletter",
       "documentRequests",
       "documents",
+      "statistics",
     ]);
   });
 
@@ -209,6 +213,7 @@ describe("dashboard menu", () => {
       "documents",
       "team",
       "settings",
+      "statistics",
     ]);
   });
 
@@ -217,6 +222,25 @@ describe("dashboard menu", () => {
       new Set<Permission>([PERMISSIONS.DATA_DELETE, PERMISSIONS.DOCUMENTS_VIEW]),
     ).map((s) => s.key);
     expect(keys).toEqual(["home"]);
+  });
+
+  it("shows Statistics to a member holding any KPI's permission, and to no one else", () => {
+    const section = DASHBOARD_SECTIONS.find((item) => item.key === "statistics");
+    expect(section).toMatchObject({ href: "/dashboard/statistics" });
+    expect([...sectionKeys(section!)].sort()).toEqual(
+      [
+        PERMISSIONS.CONSULTATIONS_VIEW_ALL,
+        PERMISSIONS.DOCUMENT_REQUESTS_RECOMMEND,
+        PERMISSIONS.TRAINING_MANAGE,
+        PERMISSIONS.CONTENT_MANAGE,
+        PERMISSIONS.TEAM_MANAGE,
+      ].sort(),
+    );
+    for (const key of sectionKeys(section!)) {
+      expect(visibleSections(new Set([key])).map((s) => s.key)).toContain("statistics");
+    }
+    const none = Object.values(PERMISSIONS).filter((key) => !sectionKeys(section!).includes(key));
+    expect(visibleSections(new Set<Permission>(none)).map((s) => s.key)).not.toContain("statistics");
   });
 
   it("gates every section but the overview with a permission key, never a role", () => {

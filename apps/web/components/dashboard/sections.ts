@@ -1,4 +1,5 @@
 import { PERMISSIONS, type Permission } from "@repo/shared";
+import { STATISTICS_PERMISSIONS } from "./statistics/permissions";
 
 /** One dashboard menu entry. Labels live under `DashboardContent.nav`. */
 export type DashboardSection = {
@@ -14,7 +15,8 @@ export type DashboardSection = {
     | "documentRequests"
     | "documents"
     | "team"
-    | "settings";
+    | "settings"
+    | "statistics";
   href: string;
   /**
    * The permission that shows it, or a list where any one shows it, or null
@@ -97,6 +99,12 @@ export const DASHBOARD_SECTIONS: readonly DashboardSection[] = [
     key: "settings",
     href: "/dashboard/settings",
     permission: PERMISSIONS.TEAM_MANAGE,
+  },
+  {
+    key: "statistics",
+    href: "/dashboard/statistics",
+    // Any KPI's permission opens it; each KPI checks its own (§6.23).
+    permission: STATISTICS_PERMISSIONS,
   },
 ];
 
