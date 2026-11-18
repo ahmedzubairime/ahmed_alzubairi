@@ -38,8 +38,8 @@ export default async function UiKitPage({ params }: { params: Promise<{ locale: 
         </div>
         {/* The banner reads its own namespace; the rest of the demo is sample copy. */}
         <NextIntlClientProvider locale={locale} messages={{ Consent }}>
-          {/* Room at the bottom, so the open banner never hides the last section. */}
-          <div className="mt-10 pb-40 sm:pb-28">
+          {/* The open banner adds its own spacer, so it never hides the last section. */}
+          <div className="mt-10">
             <StatsDemo />
           </div>
         </NextIntlClientProvider>
