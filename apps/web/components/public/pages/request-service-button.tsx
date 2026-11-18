@@ -1,7 +1,7 @@
 "use client";
 
-import { useAuth } from "@clerk/nextjs";
 import { useLocale } from "next-intl";
+import { requestClerk, useAuthState } from "@/components/clerk/auth-state";
 import { buttonClasses } from "@/components/ui";
 import { Link } from "@/i18n/navigation";
 import { NEW_CONSULTATION_PATH, SERVICE_PARAM } from "@/components/consultations/paths";
@@ -29,14 +29,20 @@ export function RequestServiceButton({
   className?: string;
 }) {
   const locale = useLocale();
-  const { isSignedIn } = useAuth();
+  // Signed-out first: Clerk loads after the page (§13 Performance).
+  const { isSignedIn } = useAuthState();
 
   const href = isSignedIn
     ? { pathname: NEW_CONSULTATION_PATH, query: { [SERVICE_PARAM]: serviceSlug } }
     : { pathname: "/sign-up", query: { [RETURN_PARAM]: `/${locale}${serviceRequestPath(serviceSlug)}` } };
 
   return (
-    <Link href={href} className={buttonClasses({ size: "lg", className })}>
+    <Link
+      href={href}
+      onPointerEnter={requestClerk}
+      onFocus={requestClerk}
+      className={buttonClasses({ size: "lg", className })}
+    >
       {label}
     </Link>
   );

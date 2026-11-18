@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { noindexMetadata } from "@/lib/seo";
+import { AppClerkProvider } from "@/components/clerk/app-clerk-provider";
 import { CompactHeader } from "@/components/compact-header";
 import { MAIN_CONTENT_ID, SkipLink } from "@/components/skip-link";
 
@@ -8,7 +9,7 @@ export const metadata = noindexMetadata;
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <>
+    <AppClerkProvider>
       <SkipLink />
       <CompactHeader />
       <main
@@ -17,6 +18,6 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
       >
         {children}
       </main>
-    </>
+    </AppClerkProvider>
   );
 }

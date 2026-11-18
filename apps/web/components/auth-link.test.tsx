@@ -1,39 +1,48 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { onClerkRequest, publishAuth, resetAuthStateForTests } from "@/components/clerk/auth-state";
 import { AuthLink } from "./auth-link";
 
-const auth = vi.hoisted(() => ({
-  state: { isLoaded: false, isSignedIn: undefined as boolean | undefined },
-}));
-
-vi.mock("@clerk/nextjs", () => ({ useAuth: () => auth.state }));
 vi.mock("next-intl", () => ({ useTranslations: () => (key: string) => key }));
 vi.mock("@/i18n/navigation", () => ({
-  Link: ({ href, children }: { href: string; children: ReactNode }) => (
-    <a href={href}>{children}</a>
+  Link: ({ href, children, ...props }: { href: string; children: ReactNode }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
   ),
 }));
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  resetAuthStateForTests();
+});
 
 describe("AuthLink", () => {
-  it("offers no link while Clerk is loading", () => {
-    auth.state = { isLoaded: false, isSignedIn: undefined };
+  it("links to sign-in before Clerk loads: the safe choice for everyone", () => {
     render(<AuthLink />);
-    expect(screen.queryByRole("link")).toBeNull();
+    expect(screen.getByRole("link", { name: "signIn" }).getAttribute("href")).toBe("/sign-in");
   });
 
   it("links to sign-in when signed out", () => {
-    auth.state = { isLoaded: true, isSignedIn: false };
     render(<AuthLink />);
+    act(() => publishAuth({ isLoaded: true, isSignedIn: false, email: null }));
     expect(screen.getByRole("link").getAttribute("href")).toBe("/sign-in");
   });
 
-  it("links to the account when signed in", () => {
-    auth.state = { isLoaded: true, isSignedIn: true };
+  it("switches to the account once Clerk says the visitor is signed in", () => {
     render(<AuthLink />);
-    expect(screen.getByRole("link").getAttribute("href")).toBe("/account");
+    act(() => publishAuth({ isLoaded: true, isSignedIn: true, email: "a@example.com" }));
+    expect(screen.getByRole("link", { name: "account" }).getAttribute("href")).toBe("/account");
+  });
+
+  it("asks for Clerk when pointed at or focused", () => {
+    const requested = vi.fn();
+    onClerkRequest(requested);
+    render(<AuthLink />);
+    fireEvent.pointerEnter(screen.getByRole("link"));
+    fireEvent.focus(screen.getByRole("link"));
+    expect(requested).toHaveBeenCalledTimes(2);
   });
 });

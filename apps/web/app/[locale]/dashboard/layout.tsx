@@ -2,6 +2,7 @@ import { useTranslations } from "next-intl";
 import { Suspense, type ReactNode } from "react";
 import { noindexMetadata } from "@/lib/seo";
 import { AppShell } from "@/components/app-shell";
+import { AppClerkProvider } from "@/components/clerk/app-clerk-provider";
 import {
   DashboardNav,
   DashboardNavSkeleton,
@@ -20,18 +21,20 @@ export default function DashboardLayout({
   const t = useTranslations("Dashboard");
 
   return (
-    <AppShell
-      title={t("title")}
-      navLabel={t("navLabel")}
-      links={[]}
-      menu={
-        // The menu reads the session, so it streams in after the shell.
-        <Suspense fallback={<DashboardNavSkeleton />}>
-          <DashboardNav params={params} />
-        </Suspense>
-      }
-    >
-      {children}
-    </AppShell>
+    <AppClerkProvider>
+      <AppShell
+        title={t("title")}
+        navLabel={t("navLabel")}
+        links={[]}
+        menu={
+          // The menu reads the session, so it streams in after the shell.
+          <Suspense fallback={<DashboardNavSkeleton />}>
+            <DashboardNav params={params} />
+          </Suspense>
+        }
+      >
+        {children}
+      </AppShell>
+    </AppClerkProvider>
   );
 }
