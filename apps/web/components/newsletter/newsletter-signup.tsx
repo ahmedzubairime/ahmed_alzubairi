@@ -12,15 +12,24 @@ import { NewsletterForm } from "./newsletter-form";
 export function NewsletterSignup({
   source,
   className,
+  inFooter = false,
 }: {
   source: NewsletterSource;
   className?: string;
+  /**
+   * The footer's copy names its region apart, so a page with a second signup
+   * (home, blog) doesn't have two landmarks called "Newsletter".
+   */
+  inFooter?: boolean;
 }) {
   const t = useTranslations("Newsletter");
   const titleId = useId();
 
   return (
-    <section aria-labelledby={titleId} className={className}>
+    <section
+      {...(inFooter ? { "aria-label": t("footerLabel") } : { "aria-labelledby": titleId })}
+      className={className}
+    >
       <h2 id={titleId} className="text-base font-semibold text-text">
         {t("title")}
       </h2>
