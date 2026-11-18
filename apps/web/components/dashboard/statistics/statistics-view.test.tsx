@@ -87,6 +87,8 @@ describe("StatisticsView", () => {
     await show([{ key: "signupShare", signups: Array(12).fill(1), visitors: [...Array(11).fill(40), 0] }]);
     expect(screen.getByText(en.kpis.signupShare.noVisitors)).toBeTruthy();
     expect(outsideCharts()).toHaveLength(0);
+    // The chart still carries the note for its earlier months.
+    expect(screen.getAllByText(en.approximate).some((element) => element.closest("figure"))).toBe(true);
     cleanup();
     await show([{ key: "signupShare", unavailable: true }]);
     expect(outsideCharts()).toHaveLength(0);
