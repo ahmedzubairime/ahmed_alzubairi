@@ -28,6 +28,17 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/api/documents/**": ["./assets/fonts/**/*"],
   },
+  // PostHog through our own origin (§6.23): ad blockers and the CSP see one
+  // host. EU cloud; static bundles come from its assets host.
+  async rewrites() {
+    return [
+      { source: "/ingest/static/:path*", destination: "https://eu-assets.i.posthog.com/static/:path*" },
+      { source: "/ingest/array/:path*", destination: "https://eu-assets.i.posthog.com/array/:path*" },
+      { source: "/ingest/:path*", destination: "https://eu.i.posthog.com/:path*" },
+    ];
+  },
+  // PostHog's paths end in "/"; without this each batch gets a 308 first.
+  skipTrailingSlashRedirect: true,
   turbopack: {
     rules: {
       "*.css": {

@@ -5,6 +5,8 @@ import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
+import { Analytics } from "@/components/analytics/analytics";
+import { ConsentChoice } from "@/components/analytics/consent-choice";
 import { ThemeProvider } from "@/components/theme-provider";
 import { localeDirection, routing } from "@/i18n/routing";
 import { clerkAppearance } from "@/lib/auth/appearance";
@@ -34,7 +36,7 @@ export default async function LocaleLayout({
   }
 
   // Only what client components use, to keep the browser bundle small.
-  const { Header, Nav, Error: ErrorMessages, Clerk } = await getMessages();
+  const { Header, Nav, Error: ErrorMessages, Clerk, Consent } = await getMessages();
 
   // next-themes sets the class on <html> before hydration, so React must
   // accept the difference from the server's markup.
@@ -48,7 +50,7 @@ export default async function LocaleLayout({
       <body className="min-h-full flex flex-col bg-background text-text">
         <NextIntlClientProvider
           locale={locale}
-          messages={{ Header, Nav, Error: ErrorMessages }}
+          messages={{ Header, Nav, Error: ErrorMessages, Consent }}
         >
           <ClerkProvider
             localization={clerkLocalization(locale, Clerk)}
@@ -58,6 +60,8 @@ export default async function LocaleLayout({
             afterSignOutUrl={`/${locale}`}
           >
             <ThemeProvider>{children}</ThemeProvider>
+            <ConsentChoice />
+            <Analytics />
           </ClerkProvider>
         </NextIntlClientProvider>
       </body>

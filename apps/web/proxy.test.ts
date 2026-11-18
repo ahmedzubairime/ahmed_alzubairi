@@ -52,7 +52,8 @@ vi.mock("./lib/content", () => ({
 vi.mock("./lib/content/posts", () => ({ hasPost: check("blog") }));
 vi.mock("./lib/content/courses", () => ({ hasCourse: check("training") }));
 
-const { default: proxy, DETAIL_LOOKUP_TIMEOUT_MS } = await import("./proxy");
+const { default: proxy, DETAIL_LOOKUP_TIMEOUT_MS, config } = await import("./proxy");
+const { unstable_doesMiddlewareMatch } = await import("next/experimental/testing/server");
 
 const ORIGIN = "http://localhost:3000";
 
@@ -332,4 +333,22 @@ describe("detail pages", () => {
     await request("/en/services/no-such-service");
     expect(vi.getTimerCount()).toBe(0);
   });
+});
+
+describe("the PostHog reverse proxy path", () => {
+  const runs = (url: string) => unstable_doesMiddlewareMatch({ config, url });
+
+  it.each(["/ingest/e/", "/ingest/flags/?v=2", "/ingest/static/array.js", "/ingest/s/"])(
+    "never runs the proxy for %s, so it reaches the rewrite unchanged",
+    (path) => {
+      expect(runs(path)).toBe(false);
+    },
+  );
+
+  it.each(["/", "/ar", "/en/about", "/ingested", "/api/posthog-config", "/ar/ingest/e/"])(
+    "still runs the proxy for %s",
+    (path) => {
+      expect(runs(path)).toBe(true);
+    },
+  );
 });
