@@ -88,6 +88,17 @@ describe("ConsentBanner spacer", () => {
     expect(spacer()?.style.height).toBe("141px");
   });
 
+  it("uses a CSS estimate until the banner is measured", () => {
+    bannerTop = window.innerHeight; // Not laid out yet: covers nothing measurable.
+    const { spacer } = renderBanner();
+    expect(spacer()?.style.height).toBe("");
+    expect(spacer()?.className).toContain("h-36");
+    bannerTop = window.innerHeight - 109;
+    act(() => observed?.());
+    expect(spacer()?.style.height).toBe("109px");
+    expect(spacer()?.className).not.toContain("h-36");
+  });
+
   it("leaves no spacer when closed", () => {
     const { spacer } = renderBanner(false);
     expect(spacer()).toBeNull();
