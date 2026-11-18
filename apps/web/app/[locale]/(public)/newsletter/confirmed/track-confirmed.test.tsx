@@ -44,7 +44,7 @@ describe("newsletter_confirmed", () => {
     expect(`${window.location.pathname}${window.location.search}${window.location.hash}`).toBe("/en/newsletter/confirmed#top");
   });
 
-  it("counts only the confirm route's success redirect, not a bare visit, a reload or a refusal", async () => {
+  it("mounts the tracker only for an explicit status=confirmed, not a bare URL, invalid, retry or another casing", async () => {
     expect(tracked(await page("confirmed"))).toBe(true);
     for (const status of [undefined, "invalid", "retry", "Confirmed"]) {
       expect(tracked(await page(status))).toBe(false);
