@@ -1,0 +1,52 @@
+{
+  "title": "Statistics",
+  "intro": "The last 12 months, month by month, in your time zone ({timeZone}).",
+  "approximate": "Visitor counts are approximate: a visitor who hasn't accepted cookies is counted once per visit.",
+  "unavailable": "Not available right now",
+  "loading": "Loading statistics…",
+  "vsLastMonth": "vs last month",
+  "chart": {
+    "month": "Month",
+    "value": "Value",
+    "showValues": "Show values",
+    "empty": "Nothing in these 12 months yet."
+  },
+  "kpis": {
+    "consultations": {
+      "label": "Consultation requests this month",
+      "chart": "Consultation requests per month"
+    },
+    "firstReply": {
+      "label": "Average time to first reply",
+      "unit": "hours",
+      "hint": "Last {days} days. Internal, never shown to clients.",
+      "none": "No replies in the last {days} days",
+      "chart": "Average hours to first reply",
+      "chartNote": "By the month the request came in. Months with no reply are left out.",
+      "capped": "Based on the latest {count} replies."
+    },
+    "documentRequests": {
+      "label": "Document requests this month",
+      "chart": "Document requests per month"
+    },
+    "registrations": {
+      "label": "Course registrations this month",
+      "chart": "Course registrations per month"
+    },
+    "newsletter": {
+      "label": "Confirmed newsletter subscribers",
+      "hint": "{count, plural, =0 {None new this month} one {# new this month} other {# new this month}}",
+      "chart": "New confirmed subscribers per month",
+      "chartNote": "By the month they signed up."
+    },
+    "downloads": {
+      "label": "Resource downloads this month",
+      "chart": "Resource downloads per month"
+    },
+    "signupShare": {
+      "label": "Visitors who created an account this month",
+      "hint": "{signups} sign-ups of {visitors} visitors",
+      "chart": "Share of visitors who created an account (%)"
+    }
+  }
+}
