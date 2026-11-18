@@ -33,7 +33,13 @@ export const HIDE_IF_CHOSEN = `try{var v=localStorage.getItem(${JSON.stringify(C
  * later. The inline script hides it at once for a visitor who already chose;
  * after hydration the stored choice decides, as before.
  */
+const noSubscription = () => () => {};
+
 export function ConsentChoice() {
+  // True in the server HTML and while hydrating it, false in a client render
+  // (a language switch remounts the layout): React never runs a script it
+  // creates on the client, so it isn't rendered there at all.
+  const fromServer = useSyncExternalStore(noSubscription, () => false, () => true);
   const stored = useSyncExternalStore<Consent | null | typeof UNKNOWN>(subscribe, () => readConsent(), () => UNKNOWN);
   const [chosen, setChosen] = useState(false);
   const open = stored !== "granted" && stored !== "denied" && !chosen;
@@ -55,7 +61,7 @@ export function ConsentChoice() {
           privacyHref="/privacy"
         />
       </div>
-      <script dangerouslySetInnerHTML={{ __html: HIDE_IF_CHOSEN }} suppressHydrationWarning />
+      {fromServer && <script dangerouslySetInnerHTML={{ __html: HIDE_IF_CHOSEN }} suppressHydrationWarning />}
     </>
   );
 }

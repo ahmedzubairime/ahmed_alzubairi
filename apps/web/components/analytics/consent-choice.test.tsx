@@ -56,6 +56,11 @@ describe("ConsentChoice", () => {
     expect(parseServerHtml().hidden).toBe(true);
   });
 
+  it("renders no script in a client render, where it would never run", () => {
+    const { container } = render(tree());
+    expect(container.querySelector("script")).toBeNull();
+  });
+
   it("stays visible before hydration for a visitor who hasn't chosen", () => {
     expect(parseServerHtml().hidden).toBe(false);
   });
