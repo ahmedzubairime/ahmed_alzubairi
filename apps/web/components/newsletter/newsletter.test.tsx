@@ -34,6 +34,19 @@ afterEach(() => {
 });
 
 describe("NewsletterSignup", () => {
+  it.each(["ar", "en"] as const)("names the footer's region apart from a page's own signup in %s", (locale) => {
+    render(
+      <NextIntlClientProvider locale={locale} messages={{ Newsletter: MESSAGES[locale] }}>
+        <NewsletterSignup source="home" />
+        <NewsletterSignup source="footer" inFooter />
+      </NextIntlClientProvider>,
+    );
+    const names = screen.getAllByRole("region").map((region) => region.getAttribute("aria-label") ?? region.getAttribute("aria-labelledby"));
+    expect(screen.getByRole("region", { name: MESSAGES[locale].title })).toBeTruthy();
+    expect(screen.getByRole("region", { name: MESSAGES[locale].footerLabel })).toBeTruthy();
+    expect(new Set(names).size).toBe(2);
+  });
+
   it.each(["ar", "en"] as const)("shows a labelled email field and a button in %s", (locale) => {
     show(locale);
     expect(screen.getByRole("heading", { name: MESSAGES[locale].title })).toBeTruthy();

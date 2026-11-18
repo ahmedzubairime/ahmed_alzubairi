@@ -73,7 +73,7 @@ export function SiteFooter() {
           <Suspense>
             <FooterChannels />
           </Suspense>
-          <NewsletterSignup source="footer" className="max-w-md" />
+          <NewsletterSignup source="footer" className="max-w-md" inFooter />
         </div>
         <nav aria-label={t("sectionsLabel")}>
           <ul className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3">
