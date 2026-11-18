@@ -57,6 +57,20 @@ describe("StatTile", () => {
   });
 });
 
+describe("StatTile as a link", () => {
+  it("is one link named by its label and value", () => {
+    render(<StatTile href="/dashboard/consultations" label="Open consultations" value="17" />);
+    const link = screen.getByRole("link", { name: "Open consultations 17" });
+    expect(link.getAttribute("href")).toBe("/dashboard/consultations");
+  });
+
+  it("keeps a label line while loading without a label", () => {
+    const { container } = render(<StatTile label="" state="loading" />);
+    expect(container.querySelector("p")).toBeNull();
+    expect(container.querySelectorAll("[aria-hidden='true']")).toHaveLength(3);
+  });
+});
+
 describe("niceScale", () => {
   it("rounds the top up to a clean step", () => {
     expect(niceScale(38)).toEqual({ top: 40, ticks: [0, 10, 20, 30, 40] });

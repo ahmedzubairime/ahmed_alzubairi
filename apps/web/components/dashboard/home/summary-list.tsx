@@ -1,12 +1,11 @@
 import { getTranslations } from "next-intl/server";
-import { Card } from "@/components/ui";
-import { Link } from "@/i18n/navigation";
+import { StatTile } from "@/components/ui";
 import type { SummaryItem } from "./summary";
 
 /**
- * The dashboard home's numbers (§6.20). Each card links to its section; the
- * number and its label make the link's name. Nothing shows when no count
- * came back.
+ * The dashboard home's numbers (§6.20), as stat tiles like the statistics
+ * page. Each tile links to its section; its label and number make the link's
+ * name. Nothing shows when no count came back.
  */
 export async function SummaryList({ items }: { items: readonly SummaryItem[] }) {
   if (items.length === 0) return null;
@@ -21,19 +20,12 @@ export async function SummaryList({ items }: { items: readonly SummaryItem[] }) 
       <h2 id="dashboard-summary" className="text-lg text-text">
         {t("heading")}
       </h2>
-      <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      {/* Two columns even on phones: six short tiles, half the scrolling. */}
+      <ul className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-3">
         {items.map((item) => (
-          <Card as="li" compact key={item.key} className="relative">
-            <Link
-              href={item.href}
-              className="flex flex-col gap-1 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring after:absolute after:inset-0 hover:underline"
-            >
-              <span className="text-3xl font-semibold tabular-nums text-text">
-                {t("number", { count: item.count })}
-              </span>
-              <span className="text-sm text-text-secondary">{label(item)}</span>
-            </Link>
-          </Card>
+          <li key={item.key} className="min-w-0">
+            <StatTile href={item.href} label={label(item)} value={t("number", { count: item.count })} />
+          </li>
         ))}
       </ul>
     </section>

@@ -181,7 +181,8 @@ export default async function ConsultationPage({ params }: { params: Params }) {
             </section>
           </div>
 
-          <aside className="space-y-4">
+          {/* A column of labelled sections, not a second landmark next to the menu. */}
+          <div className="space-y-4">
             <Card as="section" compact aria-labelledby="client-heading" className="space-y-3">
               <h2 id="client-heading" className="text-lg">
                 {t("detail.client")}
@@ -248,7 +249,7 @@ export default async function ConsultationPage({ params }: { params: Params }) {
               )}
               {access.delete && <DeleteConsultation id={consultation.id} title={consultation.title} />}
             </Card>
-          </aside>
+          </div>
         </div>
       </div>
     </NextIntlClientProvider>

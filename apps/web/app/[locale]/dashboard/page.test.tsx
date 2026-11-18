@@ -61,8 +61,9 @@ function elements(node: ReactNode): ReactElement[] {
 const text = (tree: ReactNode): string =>
   elements(tree)
     .flatMap((element) => {
-      const children = (element.props as { children?: unknown }).children;
-      return (Array.isArray(children) ? children : [children]).filter((child) => typeof child === "string");
+      const { children, label, value } = element.props as { children?: unknown; label?: unknown; value?: unknown };
+      // A StatTile carries its text in props.
+      return [...(Array.isArray(children) ? children : [children]), label, value].filter((child) => typeof child === "string");
     })
     .join("|");
 

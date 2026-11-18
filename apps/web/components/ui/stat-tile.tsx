@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { cx } from "./cx";
+import { Link } from "@/i18n/navigation";
+import { cx, FOCUS_RING } from "./cx";
 import { Skeleton } from "./skeleton";
 
 /**
@@ -56,6 +57,9 @@ function ChangeArrow({ direction }: { direction: StatChange["direction"] }) {
  *
  * `loading` shows a skeleton. `unavailable` is for a KPI whose source failed:
  * the tile keeps its label and says so, instead of showing a wrong zero.
+ *
+ * With `href` the whole tile is one link, named by its label and value, for
+ * a number that leads to its list (the dashboard summary).
  */
 export function StatTile({
   label,
@@ -66,6 +70,7 @@ export function StatTile({
   state = "ready",
   loadingLabel,
   unavailableLabel,
+  href,
   className,
 }: {
   label: string;
@@ -81,14 +86,20 @@ export function StatTile({
   loadingLabel?: string;
   /** Shown in place of the value, e.g. "Not available right now". Required with `unavailable`. */
   unavailableLabel?: string;
+  /** Makes the whole tile a link to this page. */
+  href?: string;
   className?: string;
 }) {
-  return (
-    <div
-      className={cx("flex min-w-0 flex-col gap-2 rounded-lg border border-text/10 bg-surface p-5 text-text shadow-sm", className)}
-      aria-busy={state === "loading" || undefined}
-    >
-      <p className="text-sm font-semibold text-pretty text-text-secondary">{label}</p>
+  // Full height, so tiles in one grid row line up.
+  const classes = cx("flex h-full min-w-0 flex-col gap-2 rounded-lg border border-text/10 bg-surface p-5 text-text shadow-sm", className);
+  const content = (
+    <>
+      {label ? (
+        <p className="text-sm font-semibold text-pretty text-text-secondary">{label}</p>
+      ) : (
+        // A skeleton tile with no label yet keeps the label's line.
+        state === "loading" && <Skeleton className="h-4 w-40" />
+      )}
 
       {state === "loading" && (
         <>
@@ -130,6 +141,22 @@ export function StatTile({
           {hint && <p className="text-sm text-pretty text-text-secondary">{hint}</p>}
         </>
       )}
+    </>
+  );
+
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className={cx(classes, "transition-colors hover:border-text/30 hover:bg-text/[0.03] motion-reduce:transition-none", FOCUS_RING)}
+      >
+        {content}
+      </Link>
+    );
+  }
+  return (
+    <div className={classes} aria-busy={state === "loading" || undefined}>
+      {content}
     </div>
   );
 }

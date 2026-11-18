@@ -75,7 +75,7 @@ export function CourseList({ courses, locale }: { courses: AdminCourse[]; locale
               <Link
                 href={registrationsPath({ course: course.id })}
                 className="text-sm font-semibold underline-offset-4 hover:underline"
-                aria-label={t("list.registrationsLabel", { title })}
+                aria-label={t("list.registrationsLabel", { title, count: course.registrationCount })}
               >
                 {t("list.registrations", { count: course.registrationCount })}
               </Link>

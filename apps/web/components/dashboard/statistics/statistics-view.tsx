@@ -34,6 +34,7 @@ export async function StatisticsView({ statistics, locale }: { statistics: Stati
         valueHeader={t("chart.value")}
         emptyLabel={t("chart.empty")}
         tableToggleLabel={t("chart.showValues")}
+        className="h-full"
       />
     );
   };
@@ -124,7 +125,8 @@ export async function StatisticsView({ statistics, locale }: { statistics: Stati
 
   const tiles = statistics.kpis.map(build);
   const charts = tiles.filter((item) => item.chart);
-  const visitors = statistics.kpis.some((kpi) => kpi.key === "signupShare");
+  // The note qualifies visitor numbers, so only when they are shown.
+  const visitors = statistics.kpis.some((kpi) => kpi.key === "signupShare" && !("unavailable" in kpi));
 
   return (
     <div className="space-y-6">
@@ -135,6 +137,8 @@ export async function StatisticsView({ statistics, locale }: { statistics: Stati
           </li>
         ))}
       </ul>
+      {/* Next to the visitor tile it qualifies, not after every chart. */}
+      {visitors && <p className="-mt-2 text-sm text-pretty text-text-secondary">{t("approximate")}</p>}
       {charts.length > 0 && (
         <ul className="grid gap-4 lg:grid-cols-2">
           {charts.map((item) => (
@@ -144,7 +148,6 @@ export async function StatisticsView({ statistics, locale }: { statistics: Stati
           ))}
         </ul>
       )}
-      {visitors && <p className="text-sm text-pretty text-text-secondary">{t("approximate")}</p>}
     </div>
   );
 }

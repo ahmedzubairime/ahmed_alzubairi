@@ -48,7 +48,7 @@
     "seatsTaken": "{taken} من {total} محجوزة",
     "registered": "{count, plural, =0 {بلا حد، لا مسجلين} one {بلا حد، مسجل واحد} two {بلا حد، مسجلان} few {بلا حد، # مسجلين} many {بلا حد، # مسجلًا} other {بلا حد، # مسجل}}",
     "registrations": "{count, plural, =0 {لا تسجيلات} one {تسجيل واحد} two {تسجيلان} few {# تسجيلات} many {# تسجيلًا} other {# تسجيل}}",
-    "registrationsLabel": "تسجيلات {title}"
+    "registrationsLabel": "{count, plural, =0 {لا تسجيلات} one {تسجيل واحد} two {تسجيلان} few {# تسجيلات} many {# تسجيلًا} other {# تسجيل}} في {title}"
   },
   "detail": {
     "back": "كل الدورات",
