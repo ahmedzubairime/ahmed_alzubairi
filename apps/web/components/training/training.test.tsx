@@ -16,7 +16,13 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("server-only", () => ({}));
 vi.mock("@clerk/nextjs/server", () => ({ auth: vi.fn() }));
-vi.mock("@clerk/nextjs", () => ({ useUser: () => ({ user: mocks.user }) }));
+vi.mock("@/components/clerk/auth-state", () => ({
+  useAuthState: () => ({
+    isLoaded: true,
+    isSignedIn: Boolean(mocks.user),
+    email: mocks.user?.primaryEmailAddress?.emailAddress ?? null,
+  }),
+}));
 vi.mock("@/lib/supabase/user", () => ({ createUserClient: vi.fn() }));
 vi.mock("@/lib/supabase/service", () => ({ createServiceClient: vi.fn() }));
 vi.mock("next/cache", () => ({ cacheTag: vi.fn(), cacheLife: vi.fn() }));

@@ -1,6 +1,5 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs";
 import {
   customTrainingRequestSchema,
   errorResponseSchema,
@@ -9,6 +8,7 @@ import {
 } from "@repo/shared";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useAuthState } from "@/components/clerk/auth-state";
 import { Button, TextField } from "@/components/ui";
 
 type Field = keyof CustomTrainingRequest;
@@ -38,7 +38,8 @@ function value(form: FormData, name: Field) {
  */
 export function CustomRequestForm() {
   const t = useTranslations("Training.custom");
-  const { user } = useUser();
+  // Clerk loads after the page (§13 Performance); the address arrives then.
+  const { email } = useAuthState();
   const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
@@ -47,7 +48,7 @@ export function CustomRequestForm() {
   const [formKey, setFormKey] = useState(0);
   const sentHeading = useRef<HTMLHeadingElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
-  const ownEmail = user?.primaryEmailAddress?.emailAddress ?? "";
+  const ownEmail = email ?? "";
 
   useEffect(() => {
     if (sent) sentHeading.current?.focus();

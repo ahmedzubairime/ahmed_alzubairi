@@ -6,7 +6,15 @@ import enDialog from "@/messages/en/DocumentRequestDialog.json";
 import { DocumentsList } from "./documents-list";
 
 const router = vi.hoisted(() => ({ push: vi.fn(), replace: vi.fn() }));
-vi.mock("@clerk/nextjs", () => ({ useAuth: () => ({ isLoaded: true, isSignedIn: false }) }));
+vi.mock("@/components/clerk/auth-state", () => {
+  const signedOut = { isLoaded: true, isSignedIn: false, email: null };
+  return {
+    useAuthState: () => signedOut,
+    readAuth: () => signedOut,
+    whenClerkLoaded: async () => signedOut,
+    requestClerk: () => {},
+  };
+});
 vi.mock("next/navigation", () => ({ useSearchParams: () => new URLSearchParams() }));
 vi.mock("@/i18n/navigation", () => ({ useRouter: () => router, Link: () => null }));
 vi.mock("next-intl", async (original) => {

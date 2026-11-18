@@ -14,7 +14,14 @@ import { callsOn, fakeClient } from "@/components/dashboard/documents/fake-clien
 const auth = vi.hoisted(() => ({ isLoaded: true, isSignedIn: false as boolean | undefined }));
 const search = vi.hoisted(() => ({ value: "" }));
 const router = vi.hoisted(() => ({ push: vi.fn(), replace: vi.fn() }));
-vi.mock("@clerk/nextjs", () => ({ useAuth: () => auth }));
+vi.mock("@/components/clerk/auth-state", () => ({
+  useAuthState: () => auth,
+  readAuth: () => auth,
+  // Resolves on the next load, as the store does once Clerk is ready.
+  whenClerkLoaded: () => new Promise((resolve) => clerkWaiters.push(resolve)),
+  requestClerk: () => {},
+}));
+const clerkWaiters: ((state: typeof auth) => void)[] = [];
 vi.mock("next/navigation", () => ({ useSearchParams: () => new URLSearchParams(search.value) }));
 vi.mock("@/i18n/navigation", () => ({
   useRouter: () => router,
@@ -169,8 +176,10 @@ describe("signed-out request round trip", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Request to view: Course certificate" }));
     expect(router.push).not.toHaveBeenCalled();
+    expect(clerkWaiters).toHaveLength(1); // the click asked for Clerk
     auth.isLoaded = true;
     auth.isSignedIn = true;
+    clerkWaiters.length = 0;
     rerender(
       <NextIntlClientProvider locale="en" messages={MESSAGES.en}>
         <DocumentRequestProvider documents={DOCS}>

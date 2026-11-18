@@ -31,7 +31,10 @@ vi.mock("next/server", () => ({
     mocks.connected = true;
   },
 }));
-vi.mock("@clerk/nextjs", () => ({ useAuth: () => ({ isSignedIn: mocks.signedIn }) }));
+vi.mock("@/components/clerk/auth-state", () => ({
+  useAuthState: () => ({ isLoaded: true, isSignedIn: mocks.signedIn, email: null }),
+  requestClerk: () => {},
+}));
 vi.mock("next-intl", async (original) => ({
   ...(await original<typeof import("next-intl")>()),
   useTranslations: () => (key: string) => key,

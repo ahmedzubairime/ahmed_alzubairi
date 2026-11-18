@@ -1,6 +1,5 @@
 "use client";
 
-import { useAuth } from "@clerk/nextjs";
 import { useLocale, useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import {
@@ -13,6 +12,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { readAuth, useAuthState, whenClerkLoaded } from "@/components/clerk/auth-state";
 import { Button, Checkbox } from "@/components/ui";
 import { useRouter } from "@/i18n/navigation";
 import { RETURN_PARAM } from "@/lib/auth/return-path";
@@ -64,7 +64,7 @@ export function DocumentRequestProvider({
   const t = useTranslations("DocumentRequestDialog");
   const locale = useLocale();
   const router = useRouter();
-  const { isLoaded, isSignedIn } = useAuth();
+  const { isLoaded } = useAuthState();
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
   const [dialogIds, setDialogIds] = useState<string[] | null>(null);
   const [fromLink, setFromLink] = useState<string[]>([]);
@@ -79,24 +79,30 @@ export function DocumentRequestProvider({
   // rendering (React's pattern for state that follows other state), not in an effect.
   if (isLoaded && fromLink.length > 0) {
     setSelected(new Set(fromLink));
-    if (isSignedIn) setDialogIds(fromLink);
+    if (readAuth().isSignedIn) setDialogIds(fromLink);
     setFromLink([]);
   }
 
   const start = useCallback(
     (ids: readonly string[]) => {
-      // Before Clerk loads, a signed-in visitor would look signed out.
-      if (ids.length === 0 || !isLoaded) return;
-      if (!isSignedIn) {
-        router.push({
-          pathname: "/sign-in",
-          query: { [RETURN_PARAM]: `/${locale}${requestPath(ids)}` },
-        });
-        return;
-      }
-      setDialogIds([...ids]);
+      if (ids.length === 0) return;
+      const act = ({ isSignedIn }: { isSignedIn: boolean }) => {
+        if (!isSignedIn) {
+          router.push({
+            pathname: "/sign-in",
+            query: { [RETURN_PARAM]: `/${locale}${requestPath(ids)}` },
+          });
+          return;
+        }
+        setDialogIds([...ids]);
+      };
+      // Clerk loads after the page (§13 Performance): a click before then
+      // loads it and waits, since a signed-in visitor would look signed out.
+      const now = readAuth();
+      if (now.isLoaded) act(now);
+      else void whenClerkLoaded().then(act);
     },
-    [isLoaded, isSignedIn, locale, router],
+    [locale, router],
   );
 
   const [atLimit, setAtLimit] = useState(false);

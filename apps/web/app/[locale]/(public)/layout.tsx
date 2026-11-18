@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { LazyClerk } from "@/components/clerk/lazy-clerk";
 import { LanguageFallbackProvider } from "@/components/language-switch";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
@@ -12,6 +13,8 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
       <SiteHeader />
       {children}
       <SiteFooter />
+      {/* Clerk loads after idle, beside the page (§13 Performance). */}
+      <LazyClerk />
     </LanguageFallbackProvider>
   );
 }
