@@ -2,7 +2,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { SITE_NAME } from "@repo/shared";
 import type { Metadata } from "next";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
-import { getMessages } from "next-intl/server";
+import { getMessages, getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -10,12 +10,27 @@ import { localeDirection, routing } from "@/i18n/routing";
 import { clerkAppearance } from "@/lib/auth/appearance";
 import { clerkLocalization } from "@/lib/auth/localization";
 import { signInPath, signUpPath } from "@/lib/auth/return-path";
+import { OG_LOCALES, siteUrl, TITLE_TEMPLATE } from "@/lib/seo";
 import { fontVariables } from "../fonts";
 import "../globals.css";
 
-export const metadata: Metadata = {
-  title: SITE_NAME,
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  if (!hasLocale(routing.locales, locale)) return {};
+  const t = await getTranslations({ locale, namespace: "Seo" });
+  // Defaults for every page; each page adds its canonical and hreflang (lib/seo).
+  return {
+    metadataBase: siteUrl(),
+    title: { default: SITE_NAME, template: TITLE_TEMPLATE },
+    description: t("description"),
+    openGraph: { siteName: SITE_NAME, locale: OG_LOCALES[locale], type: "website" },
+    twitter: { card: "summary_large_image" },
+  };
+}
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));

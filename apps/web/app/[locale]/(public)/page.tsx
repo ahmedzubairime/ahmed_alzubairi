@@ -1,5 +1,7 @@
 import { SITE_NAME, type HomeSectionKey, type Locale } from "@repo/shared";
+import type { Metadata } from "next";
 import { hasLocale } from "next-intl";
+import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Fragment, type ReactNode } from "react";
@@ -21,6 +23,7 @@ import {
 } from "@/components/public/home";
 import { MAIN_CONTENT_ID } from "@/components/skip-link";
 import { routing } from "@/i18n/routing";
+import { defaultOgImage, pageMetadata } from "@/lib/seo";
 import {
   getExpertiseAreas,
   getHomeSections,
@@ -144,6 +147,23 @@ function plan(section: HomeSection, data: SectionData, locale: Locale): Planned 
  * to an outside build, so the build can't read Supabase. The lib/content reads
  * stay cached and are revalidated by tag (§9). Nothing here reads the session.
  */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  if (!hasLocale(routing.locales, locale)) return {};
+  const t = await getTranslations({ locale, namespace: "Seo" });
+  return pageMetadata({
+    locale,
+    path: "/",
+    description: t("description"),
+    languages: routing.locales,
+    image: defaultOgImage(locale, t("ogAlt", { siteName: SITE_NAME })),
+  });
+}
+
 export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   if (!hasLocale(routing.locales, locale)) notFound();

@@ -19,6 +19,8 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   images: { remotePatterns: publicMediaPattern() },
+  // API responses never belong in search results (§6.24).
+  headers: async () => [{ source: "/api/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex" }] }],
   // Native modules for the document watermark (§6.18). They load their own
   // platform binaries at run time, so they stay out of the bundle. `sharp` is
   // already on Next's built-in list; it is named here so the set is in one place.
