@@ -1,9 +1,14 @@
 import type { AnalyticsEventName, AnalyticsEvents } from "./events";
 import { eventProperties } from "./events";
 
-type Capturer = { capture: (event: string, properties: Record<string, unknown>) => unknown };
+import { stripUrl } from "./sanitize";
 
-type Queued = { event: string; properties: Record<string, unknown> };
+type Capturer = {
+  capture: (event: string, properties: Record<string, unknown>, options?: { timestamp?: Date }) => unknown;
+};
+
+/** A waiting event keeps when and where it happened, so the flush doesn't change them. */
+type Queued = { event: string; properties: Record<string, unknown>; timestamp: Date };
 
 /** Events sent before PostHog has started wait here, up to this many. */
 export const MAX_QUEUED = 20;
@@ -16,7 +21,13 @@ const queue: Queued[] = [];
 export function trackerStarted(posthog: Capturer): void {
   instance = posthog;
   state = "on";
-  for (const item of queue.splice(0)) posthog.capture(item.event, item.properties);
+  for (const item of queue.splice(0)) {
+    try {
+      posthog.capture(item.event, item.properties, { timestamp: item.timestamp });
+    } catch {
+      // One failed event never stops the rest; it isn't retried.
+    }
+  }
 }
 
 /** The provider calls this when PostHog stays off (no key): nothing is kept. */
@@ -51,7 +62,11 @@ export function track<Name extends AnalyticsEventName>(event: Name, ...[properti
       return;
     }
     if (state === "on" && instance) instance.capture(event, sent);
-    else if (queue.length < MAX_QUEUED) queue.push({ event, properties: sent });
+    else if (queue.length < MAX_QUEUED) {
+      // The page it happened on, without query or hash, as PostHog would add it now.
+      const page = { $current_url: stripUrl(window.location.href), $pathname: window.location.pathname };
+      queue.push({ event, properties: { ...sent, ...page }, timestamp: new Date() });
+    }
   } catch {
     // Analytics never breaks a page.
   }

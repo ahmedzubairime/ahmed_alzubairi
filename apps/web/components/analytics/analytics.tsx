@@ -28,7 +28,7 @@ export function Analytics() {
 
 /**
  * Starts PostHog in the browser once the page is idle, so it never delays the
- * first paint. Renders nothing. Without a key (`/api/posthog-config` 404) it
+ * first paint. Renders nothing. Without a key (`/api/posthog-config` 204) it
  * stays off and the site works the same. Never calls `identify` (§9).
  */
 function Tracker() {

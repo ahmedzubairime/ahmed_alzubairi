@@ -16,6 +16,11 @@ type Props = {
 /** What `GET /api/newsletter/confirm` may send here. Anything else is `confirmed`. */
 const OTHER_STATUSES = ["invalid", "retry"] as const;
 
+/** The route's success redirect says so explicitly; only that counts for analytics. */
+function justConfirmed(value: string | string[] | undefined) {
+  return value === "confirmed";
+}
+
 function statusOf(value: string | string[] | undefined) {
   return OTHER_STATUSES.find((status) => status === value) ?? "confirmed";
 }
@@ -36,7 +41,8 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
 export default async function NewsletterConfirmedPage({ params, searchParams }: Props) {
   const { locale } = await params;
   if (!hasLocale(routing.locales, locale)) notFound();
-  const status = statusOf((await searchParams).status);
+  const raw = (await searchParams).status;
+  const status = statusOf(raw);
   const t = await getTranslations({ locale, namespace: "Newsletter" });
 
   return (
@@ -44,7 +50,7 @@ export default async function NewsletterConfirmedPage({ params, searchParams }: 
       <div className={`${CONTAINER} max-w-2xl py-16 md:py-24`}>
         <h1 className="text-3xl md:text-4xl">{t(`confirm.${status}.title`)}</h1>
         <p className="mt-4 text-lg text-text-secondary">{t(`confirm.${status}.text`)}</p>
-        {status === "confirmed" && <TrackConfirmed />}
+        {justConfirmed(raw) && <TrackConfirmed />}
         <ButtonLink href="/" variant="secondary" className="mt-8">
           {t("confirm.home")}
         </ButtonLink>

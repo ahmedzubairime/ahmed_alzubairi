@@ -1,18 +1,13 @@
-import type { ErrorResponse, PosthogConfigResponse } from "@repo/shared";
+import type { PosthogConfigResponse } from "@repo/shared";
 import { connection, NextResponse } from "next/server";
-import { localeFromReferer } from "@/lib/auth/paths";
 import { posthogEnv } from "@/lib/analytics/env";
-import ar from "@/messages/ar/Analytics.json";
-import en from "@/messages/en/Analytics.json";
-
-const MESSAGES = { ar, en };
 
 /**
  * `GET /api/posthog-config` (§8): PostHog's public key and host, read at
- * request time. Without a key it answers 404 and the browser leaves
+ * request time. Without a key it answers 204 (no body) and the browser leaves
  * PostHog off; the site works the same.
  */
-export async function GET(request: Request): Promise<Response> {
+export async function GET(): Promise<Response> {
   await connection();
   const env = posthogEnv();
   if (!env) {
@@ -21,9 +16,9 @@ export async function GET(request: Request): Promise<Response> {
         "NEXT_PUBLIC_POSTHOG_KEY variable required by PostHog is missing or un-configured, this causes events to be silently missed. This error stops appearing once NEXT_PUBLIC_POSTHOG_KEY is configured",
       );
     }
-    const locale = localeFromReferer(request.headers.get("referer"));
-    const body: ErrorResponse = { error: { code: "not_found", message: MESSAGES[locale].configMissing } };
-    return NextResponse.json(body, { status: 404, headers: { "Cache-Control": "no-store" } });
+    // 204, not 404: a browser logs every failed fetch as a console error,
+    // and "off" isn't an error. §8 names no status for it.
+    return new Response(null, { status: 204, headers: { "Cache-Control": "no-store" } });
   }
   const body: PosthogConfigResponse = { key: env.key, host: env.host };
   return NextResponse.json(body, { headers: { "Cache-Control": "public, max-age=300" } });

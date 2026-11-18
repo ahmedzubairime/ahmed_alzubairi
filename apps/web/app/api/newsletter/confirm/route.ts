@@ -10,7 +10,7 @@ export const NEWSLETTER_CONFIRM_LIMIT: FormLimit = {
   max: 20,
 };
 
-export type ConfirmPageStatus = "invalid" | "retry";
+export type ConfirmPageStatus = "confirmed" | "invalid" | "retry";
 
 /**
  * The link comes from an email, so there is no page to take the language
@@ -54,7 +54,9 @@ export async function GET(request: NextRequest) {
   if (!parsed.success) return toPage(request, browserLocale(request), "invalid");
 
   const result = await confirmSubscription(parsed.data.token);
-  if (result.status === "confirmed") return toPage(request, result.locale);
+  // `confirmed` only on this redirect: the page counts it once for analytics
+  // and drops the param, so a reload or a bare visit isn't another confirm.
+  if (result.status === "confirmed") return toPage(request, result.locale, "confirmed");
   return toPage(
     request,
     browserLocale(request),

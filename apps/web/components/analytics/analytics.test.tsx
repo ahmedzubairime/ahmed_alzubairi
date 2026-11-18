@@ -67,8 +67,8 @@ describe("Analytics", () => {
     expect(ph.alias).not.toHaveBeenCalled();
   });
 
-  it("stays off when the config answers 404", async () => {
-    fetcher.mockResolvedValue(Response.json({ error: { code: "not_found", message: "off" } }, { status: 404 }));
+  it("stays off when the config answers 204", async () => {
+    fetcher.mockResolvedValue(new Response(null, { status: 204 }));
     render(<Analytics />);
     await settle();
     expect(ph.init).not.toHaveBeenCalled();

@@ -77,12 +77,13 @@ export function syncRecording(posthog: PosthogLike, pathname: string): void {
 
 /**
  * The key and host from `GET /api/posthog-config`, or null when PostHog is
- * off (404) or the answer can't be used. Never throws.
+ * off (204) or the answer can't be used. Never throws.
  */
 export async function fetchPosthogConfig(fetcher: typeof fetch = fetch): Promise<PosthogConfigResponse | null> {
   try {
     const response = await fetcher("/api/posthog-config");
-    if (!response.ok) return null;
+    // 200 carries the config; 204 means PostHog is off.
+    if (response.status !== 200) return null;
     const parsed = posthogConfigResponseSchema.safeParse(await response.json());
     return parsed.success ? parsed.data : null;
   } catch {

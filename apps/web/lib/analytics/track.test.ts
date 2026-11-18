@@ -19,15 +19,33 @@ describe("track", () => {
     expect(posthog.capture).toHaveBeenCalledExactlyOnceWith("contact_sent", { org_type: "company", locale: "ar" });
   });
 
-  it("keeps events until PostHog starts, then sends them in order", () => {
+  it("keeps events until PostHog starts, then sends them in order, with their own time and page", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-18T10:00:00Z"));
+    window.history.pushState({}, "", "/ar/account/consultations/new?service=governance#x");
     track("signed_up");
+    vi.setSystemTime(new Date("2026-11-18T10:00:05Z"));
     track("document_requested", { count: 2 });
     expect(posthog.capture).not.toHaveBeenCalled();
+    window.history.pushState({}, "", "/ar/account/consultations/123");
+    vi.setSystemTime(new Date("2026-11-18T10:01:00Z"));
     trackerStarted(posthog);
+    const page = { $current_url: "http://localhost:3000/ar/account/consultations/new", $pathname: "/ar/account/consultations/new" };
     expect(posthog.capture.mock.calls).toEqual([
-      ["signed_up", { locale: "ar" }],
-      ["document_requested", { count: 2, locale: "ar" }],
+      ["signed_up", { locale: "ar", ...page }, { timestamp: new Date("2026-11-18T10:00:00Z") }],
+      ["document_requested", { count: 2, locale: "ar", ...page }, { timestamp: new Date("2026-11-18T10:00:05Z") }],
     ]);
+    vi.useRealTimers();
+  });
+
+  it("goes on flushing when one queued capture throws", () => {
+    track("signed_up");
+    track("contact_sent", { org_type: "company" });
+    const capture = vi.fn().mockImplementationOnce(() => {
+      throw new Error("boom");
+    });
+    expect(() => trackerStarted({ capture })).not.toThrow();
+    expect(capture).toHaveBeenCalledTimes(2);
   });
 
   it("keeps at most MAX_QUEUED events while waiting", () => {
