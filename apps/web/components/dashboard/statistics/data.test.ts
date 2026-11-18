@@ -33,7 +33,7 @@ function fakeClient(answer: (query: Query) => Answer = () => ({ count: 2, error:
             .then(() => answer(query))
             .then(resolve, reject),
       };
-      for (const name of ["eq", "gte", "lt", "in", "not", "order", "limit", "range"]) {
+      for (const name of ["eq", "gte", "lt", "in", "not", "order", "limit", "range", "or"]) {
         builder[name] = (...args: unknown[]) => (query.filters.push([name, ...args]), builder);
       }
       return builder;
@@ -54,13 +54,13 @@ const posthog = (overrides: Partial<Record<"enabled" | "downloads" | "signupShar
 describe("loadStatistics", () => {
   it("gives the admin all seven KPIs, from the user client", async () => {
     const { client, queries } = fakeClient((query) =>
-      query.select[0] === "created_at, first_reply_at" ? { data: [], error: null } : { count: 2, error: null },
+      query.select[0] === "id, created_at, first_reply_at" ? { data: [], error: null } : { count: 2, error: null },
     );
     const { kpis, windows } = await loadStatistics(ALL, "UTC", { client, now: NOW, posthog: posthog() });
     expect(kpis.map((kpi) => kpi.key)).toEqual([...KPI_KEYS]);
     expect(kpis.some((kpi) => "unavailable" in kpi)).toBe(false);
     expect(windows).toHaveLength(12);
-    // 12 head counts each for consultations, document requests, registrations; 13 for the newsletter; 1 read for first reply.
+    // 12 head counts each for consultations, document requests, registrations; 13 for the newsletter; 1 read for first reply (empty page).
     expect(queries).toHaveLength(12 * 3 + 13 + 1);
     for (const query of queries.filter((q) => q.select[1])) {
       expect(query.select[1]).toEqual({ count: "exact", head: true });
@@ -102,7 +102,7 @@ describe("loadStatistics", () => {
     async (key, permission) => {
       const granted = new Set<Permission>(STATISTICS_PERMISSIONS.filter((item) => item !== permission));
       const { client, queries } = fakeClient((query) =>
-        query.select[0] === "created_at, first_reply_at" ? { data: [], error: null } : { count: 1, error: null },
+        query.select[0] === "id, created_at, first_reply_at" ? { data: [], error: null } : { count: 1, error: null },
       );
       const ph = posthog();
       const { kpis } = await loadStatistics(granted, "UTC", { client, now: NOW, posthog: ph });
@@ -141,7 +141,7 @@ describe("loadStatistics", () => {
   it("shows the PostHog tiles as unavailable without the query key, quietly, and the rest work", async () => {
     const log = vi.fn();
     const { client } = fakeClient((query) =>
-      query.select[0] === "created_at, first_reply_at" ? { data: [], error: null } : { count: 1, error: null },
+      query.select[0] === "id, created_at, first_reply_at" ? { data: [], error: null } : { count: 1, error: null },
     );
     const ph = posthog({ enabled: () => false });
     const { kpis } = await loadStatistics(ALL, "UTC", { client, now: NOW, posthog: ph, log });
@@ -153,7 +153,7 @@ describe("loadStatistics", () => {
   it("shows a tile as unavailable when its PostHog query or its DB read fails, and logs it", async () => {
     const log = vi.fn();
     const { client } = fakeClient((query) =>
-      query.table === "document_requests" ? { count: null, error: { code: "42501" } } : query.select[0] === "created_at, first_reply_at" ? { data: [], error: null } : { count: 1, error: null },
+      query.table === "document_requests" ? { count: null, error: { code: "42501" } } : query.select[0] === "id, created_at, first_reply_at" ? { data: [], error: null } : { count: 1, error: null },
     );
     const ph = posthog({ downloads: vi.fn(async () => Promise.reject(new Error("posthog query failed: 500"))) });
     const { kpis } = await loadStatistics(ALL, "UTC", { client, now: NOW, posthog: ph, log });
@@ -177,11 +177,14 @@ describe("loadStatistics", () => {
 
   it("averages the hours to first reply per month and over the last 90 days", async () => {
     const rows = [
-      { created_at: "2026-11-02T00:00:00Z", first_reply_at: "2026-11-02T04:00:00Z" },
-      { created_at: "2026-11-10T00:00:00Z", first_reply_at: "2026-11-11T00:00:00Z" },
-      { created_at: "2026-06-01T00:00:00Z", first_reply_at: "2026-06-01T10:00:00Z" },
+      { id: "a", created_at: "2026-11-02T00:00:00Z", first_reply_at: "2026-11-02T04:00:00Z" },
+      { id: "b", created_at: "2026-11-10T00:00:00Z", first_reply_at: "2026-11-11T00:00:00Z" },
+      { id: "c", created_at: "2026-06-01T00:00:00Z", first_reply_at: "2026-06-01T10:00:00Z" },
     ];
-    const { client, queries } = fakeClient(() => ({ data: rows, error: null }));
+    let pages = 0;
+    const { client, queries } = fakeClient((query) =>
+      query.select[0] === "id, created_at, first_reply_at" ? { data: pages++ === 0 ? rows : [], error: null } : { count: 0, error: null },
+    );
     const { kpis } = await loadStatistics(new Set([PERMISSIONS.CONSULTATIONS_VIEW_ALL]), "UTC", {
       client,
       now: NOW,
@@ -193,31 +196,62 @@ describe("loadStatistics", () => {
     expect(months.at(-1)).toBe(14);
     expect(months[6]).toBe(10); // June 2026
     expect(months[0]).toBeNull();
-    const read = queries.find((q) => q.select[0] === "created_at, first_reply_at")!;
+    const read = queries.find((q) => q.select[0] === "id, created_at, first_reply_at")!;
     expect(read.filters).toContainEqual(["not", "first_reply_at", "is", null]);
-    expect(read.filters).toContainEqual(["range", 0, 999]);
+    expect(read.filters).toContainEqual(["limit", 1000]);
   });
 
-  it("reads the first replies in pages of 1,000 so a server row limit can't truncate them, up to 5,000", async () => {
-    const row = { created_at: "2026-11-02T00:00:00Z", first_reply_at: "2026-11-02T02:00:00Z" };
-    const pageOf = (size: number) => Array.from({ length: size }, () => row);
-    // Two full pages, then a short one: three reads, not capped.
-    let { client, queries } = fakeClient((query) => {
-      const range = query.filters.find((filter) => filter[0] === "range")!;
-      return { data: pageOf(range[1] === 2000 ? 10 : 1000), error: null };
+  it("pages after the last row until an empty page, so a lower server row limit can't cut the sample", async () => {
+    // The server caps pages at 500: 500, 500, 200, then nothing = 1,200 rows, not capped.
+    const sizes = [500, 500, 200, 0];
+    let served = 0;
+    const { client, queries } = fakeClient((query) => {
+      if (query.select[0] !== "id, created_at, first_reply_at") return { count: 0, error: null };
+      const size = sizes.shift() ?? 0;
+      const data = Array.from({ length: size }, () => {
+        served++;
+        return { id: `id-${String(served).padStart(5, "0")}`, created_at: "2026-11-02T00:00:00+00:00", first_reply_at: "2026-11-02T02:00:00+00:00" };
+      });
+      return { data, error: null };
     });
-    let { kpis } = await loadStatistics(new Set([PERMISSIONS.CONSULTATIONS_VIEW_ALL]), "UTC", { client, now: NOW, posthog: posthog() });
-    expect(queries.filter((q) => q.select[0] === "created_at, first_reply_at").map((q) => q.filters.find((f) => f[0] === "range"))).toEqual([
-      ["range", 0, 999],
-      ["range", 1000, 1999],
-      ["range", 2000, 2999],
+    const { kpis } = await loadStatistics(new Set([PERMISSIONS.CONSULTATIONS_VIEW_ALL]), "UTC", { client, now: NOW, posthog: posthog() });
+    const reads = queries.filter((q) => q.select[0] === "id, created_at, first_reply_at");
+    expect(reads).toHaveLength(4);
+    expect(reads[0]!.filters.some((filter) => filter[0] === "or")).toBe(false);
+    // Each later page seeks after the previous page's last (created_at, id).
+    expect(reads[1]!.filters).toContainEqual([
+      "or",
+      'created_at.lt."2026-11-02T00:00:00+00:00",and(created_at.eq."2026-11-02T00:00:00+00:00",id.gt."id-00500")',
     ]);
-    expect(kpis.find((kpi) => kpi.key === "firstReply")).toMatchObject({ capped: false });
+    expect(reads[3]!.filters).toContainEqual([
+      "or",
+      'created_at.lt."2026-11-02T00:00:00+00:00",and(created_at.eq."2026-11-02T00:00:00+00:00",id.gt."id-01200")',
+    ]);
+    expect(kpis.find((kpi) => kpi.key === "firstReply")).toMatchObject({ capped: false, recent: 2 });
+  });
 
-    // Full pages all the way: stops at 5,000 and says so.
-    ({ client, queries } = fakeClient(() => ({ data: pageOf(1000), error: null })));
-    ({ kpis } = await loadStatistics(new Set([PERMISSIONS.CONSULTATIONS_VIEW_ALL]), "UTC", { client, now: NOW, posthog: posthog() }));
-    expect(queries.filter((q) => q.select[0] === "created_at, first_reply_at")).toHaveLength(5);
+  it("stops at 5,000 rows and says so", async () => {
+    let served = 0;
+    const { client, queries } = fakeClient((query) => {
+      const limit = query.filters.find((filter) => filter[0] === "limit")![1] as number;
+      const data = Array.from({ length: limit }, () => ({ id: `id-${++served}`, created_at: "2026-11-02T00:00:00Z", first_reply_at: "2026-11-02T01:00:00Z" }));
+      return { data, error: null };
+    });
+    const { kpis } = await loadStatistics(new Set([PERMISSIONS.CONSULTATIONS_VIEW_ALL]), "UTC", { client, now: NOW, posthog: posthog() });
+    expect(queries.filter((q) => q.select[0] === "id, created_at, first_reply_at")).toHaveLength(5);
+    expect(served).toBe(5000);
     expect(kpis.find((kpi) => kpi.key === "firstReply")).toMatchObject({ capped: true });
+  });
+
+  it("shows first reply as unavailable when a later page fails", async () => {
+    let call = 0;
+    const log = vi.fn();
+    const { client } = fakeClient(() =>
+      ++call === 1
+        ? { data: [{ id: "a", created_at: "2026-11-02T00:00:00Z", first_reply_at: "2026-11-02T01:00:00Z" }], error: null }
+        : { data: null, error: { code: "57014" } },
+    );
+    const { kpis } = await loadStatistics(new Set([PERMISSIONS.CONSULTATIONS_VIEW_ALL]), "UTC", { client, now: NOW, posthog: posthog(), log });
+    expect(kpis.find((kpi) => kpi.key === "firstReply")).toEqual({ key: "firstReply", unavailable: true });
   });
 });

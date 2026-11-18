@@ -81,7 +81,7 @@ function count(cell: unknown): number {
 export function byMonth(rows: unknown[][], keys: readonly string[], column: number): number[] {
   const found = new Map<string, number>();
   for (const row of rows) {
-    if (typeof row[0] !== "string" || !/^\d{4}-\d{2}$/.test(row[0])) throw new Error("posthog query: bad month");
+    if (typeof row[0] !== "string" || !/^\d{4}-(0[1-9]|1[0-2])$/.test(row[0])) throw new Error("posthog query: bad month");
     found.set(row[0], count(row[column]));
   }
   return keys.map((key) => found.get(key) ?? 0);

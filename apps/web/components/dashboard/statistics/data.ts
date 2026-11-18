@@ -86,23 +86,30 @@ function loaders(client: Client, windows: MonthWindow[], now: Date, posthog: Non
     firstReply: async (): Promise<KpiData> => {
       const recentFrom = new Date(now.getTime() - FIRST_REPLY_DAYS * DAY);
       const from = recentFrom < first ? recentFrom : first;
-      // Pages of 1,000, newest first, until a short page or the cap: a lower
-      // server row limit can't pass a truncated sample off as complete.
-      const data: { created_at: string; first_reply_at: string | null }[] = [];
-      for (let offset = 0; offset < FIRST_REPLY_ROW_CAP; offset += FIRST_REPLY_PAGE) {
-        const page = await client
+      // Keyset pages, newest first: each page starts after the last row of
+      // the one before, so a reply landing mid-read can't repeat a row, and
+      // only an empty page ends the read (a server row limit lower than the
+      // page size just means more pages). Stops at the cap.
+      const data: { id: string; created_at: string; first_reply_at: string | null }[] = [];
+      let after: { created_at: string; id: string } | null = null;
+      while (data.length < FIRST_REPLY_ROW_CAP) {
+        let query = client
           .from("consultations")
-          .select("created_at, first_reply_at")
+          .select("id, created_at, first_reply_at")
           .eq("kind", "consultation")
           .not("first_reply_at", "is", null)
-          .gte("created_at", iso(from))
+          .gte("created_at", iso(from));
+        if (after) query = query.or(`created_at.lt."${after.created_at}",and(created_at.eq."${after.created_at}",id.gt."${after.id}")`);
+        const page = await query
           .order("created_at", { ascending: false })
           .order("id", { ascending: true })
-          .range(offset, Math.min(offset + FIRST_REPLY_PAGE, FIRST_REPLY_ROW_CAP) - 1);
+          .limit(Math.min(FIRST_REPLY_PAGE, FIRST_REPLY_ROW_CAP - data.length));
         if (page.error) throw new Error(`first reply read failed: ${page.error.code}`);
         const rows = page.data ?? [];
+        if (rows.length === 0) break;
         data.push(...rows);
-        if (rows.length < FIRST_REPLY_PAGE) break;
+        const last = rows.at(-1)!;
+        after = { created_at: last.created_at, id: last.id };
       }
       const rows = data.flatMap((row) => {
         const created = new Date(row.created_at);

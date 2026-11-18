@@ -73,6 +73,8 @@ describe("byMonth", () => {
     ["a fraction", [["2026-11", 1.5]]],
     ["text", [["2026-11", "many"]]],
     ["a bad month", [[null, 3]]],
+    ["month 13", [["2026-13", 4]]],
+    ["month 00", [["2026-00", 4]]],
   ])("throws on %s instead of showing a zero", (_label, rows) => {
     expect(() => byMonth(rows as unknown[][], ["2026-11"], 1)).toThrow();
   });
