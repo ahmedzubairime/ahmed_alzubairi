@@ -178,9 +178,17 @@ const URL_LIKE = /^(?:https?:\/\/|\/)\S*$/i;
  * nested objects such as `$web_vitals_<metric>_event` (its `$current_url`,
  * `navigationURL`, performance `entries`) carry the full address.
  */
+/** Nesting deeper than this is removed, never sent unchecked. */
+export const MAX_DEPTH = 10;
+
 function stripDeep(value: unknown, depth = 0): unknown {
   if (typeof value === "string") return URL_LIKE.test(value) ? stripUrl(value) : value;
-  if (depth > 10 || typeof value !== "object" || value === null) return value;
+  if (typeof value !== "object" || value === null) return value;
+  if (depth > MAX_DEPTH) return undefined;
+  // Native objects (a PerformanceEntry) keep their fields on the prototype;
+  // their JSON form is what would be sent.
+  const toJSON = (value as { toJSON?: unknown }).toJSON;
+  if (typeof toJSON === "function") return stripDeep(toJSON.call(value), depth + 1);
   if (Array.isArray(value)) return value.map((item) => stripDeep(item, depth + 1));
   const copy: Properties = {};
   for (const [key, item] of Object.entries(value)) copy[key] = stripDeep(item, depth + 1);

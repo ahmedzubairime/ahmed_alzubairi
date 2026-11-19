@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { maskAttribute, sanitizeEvent, stripUrl } from "./sanitize";
+import { MAX_DEPTH, maskAttribute, sanitizeEvent, stripUrl } from "./sanitize";
 
 describe("stripUrl", () => {
   it.each([
@@ -131,6 +131,36 @@ describe("sanitizeEvent", () => {
       navigationURL: "https://site.test/en/services",
       attribution: { timeToFirstByte: 90, navigationEntry: { name: "https://site.test/en/services" } },
     });
+  });
+
+  it("keeps the fields of a native entry (toJSON), with its URL stripped", () => {
+    class Entry {
+      get name() {
+        return "https://site.test/en?email=a@b.test";
+      }
+      get entryType() {
+        return "navigation";
+      }
+      toJSON() {
+        return { name: this.name, entryType: this.entryType, startTime: 0 };
+      }
+    }
+    const out = sanitizeEvent({
+      event: "$web_vitals",
+      properties: { $web_vitals_LCP_event: { name: "LCP", entries: [new Entry()] } },
+    });
+    expect(out?.properties?.$web_vitals_LCP_event).toEqual({
+      name: "LCP",
+      entries: [{ name: "https://site.test/en", entryType: "navigation", startTime: 0 }],
+    });
+  });
+
+  it("removes nesting deeper than MAX_DEPTH instead of sending it unchecked", () => {
+    let deep: Record<string, unknown> = { url: "https://site.test/en?token=1" };
+    for (let level = 0; level < MAX_DEPTH + 2; level++) deep = { next: deep };
+    const out = sanitizeEvent({ event: "$web_vitals", properties: { $web_vitals_CLS_event: deep } });
+    expect(out).not.toBeNull();
+    expect(JSON.stringify(out)).not.toMatch(/token|\?/);
   });
 
   it("keeps text that isn't a URL as it is, at any depth", () => {
