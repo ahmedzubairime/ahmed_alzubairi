@@ -1,9 +1,13 @@
 import { EVENT_PROPERTIES } from "./events";
 
+type Properties = Record<string, unknown>;
+
 /**
  * The rules every PostHog event passes before it leaves the browser (§9):
- * URLs lose their query string and hash (they can hold a search term, an
- * email or a token), and an event with a property we didn't allow is dropped.
+ * URLs lose their query string and hash at any depth (they can hold a search
+ * term, an email or a token); campaign parameters are cut to the three a
+ * pageview may keep; a PostHog event loses any other plain property, and one
+ * of our own events with a property we didn't allow is dropped.
  */
 
 /** Properties that hold a URL or a path. `$set`/`$set_once` copies too. */
@@ -38,6 +42,76 @@ export const POSTHOG_EVENTS = new Set([
  */
 const SDK_KEPT = new Set(["token", "distinct_id"]);
 const SDK_REMOVED = new Set(["title"]);
+
+/**
+ * The campaign parameters posthog-js copies from the address onto every
+ * event, plain and as `$session_entry_<key>` / `$initial_<key>` (its list in
+ * 1.450). Only `$pageview` keeps the three below; every other one is removed.
+ */
+export const CAMPAIGN_PARAMS = [
+  "utm_source",
+  "utm_medium",
+  "utm_campaign",
+  "utm_content",
+  "utm_term",
+  "gad_source",
+  "mc_cid",
+  "gclid",
+  "gclsrc",
+  "dclid",
+  "gbraid",
+  "wbraid",
+  "fbclid",
+  "msclkid",
+  "twclid",
+  "li_fat_id",
+  "igshid",
+  "ttclid",
+  "rdt_cid",
+  "epik",
+  "qclid",
+  "sccid",
+  "oppref",
+  "bfcid",
+  "irclid",
+  "_kx",
+] as const;
+
+/** Campaign attribution a pageview keeps (Kaz, T19): not personal data. */
+export const PAGEVIEW_CAMPAIGN = ["utm_source", "utm_medium", "utm_campaign"] as const;
+
+/** The longest campaign value sent; longer ones are cut. */
+export const CAMPAIGN_MAX_LENGTH = 100;
+
+const CAMPAIGN_PREFIXES = ["", "$session_entry_", "$initial_"] as const;
+
+/** The campaign parameter a property name carries, plain or prefixed, or null. */
+function campaignParam(key: string): string | null {
+  for (const prefix of CAMPAIGN_PREFIXES) {
+    if (!key.startsWith(prefix)) continue;
+    const name = key.slice(prefix.length);
+    if ((CAMPAIGN_PARAMS as readonly string[]).includes(name)) return name;
+  }
+  return null;
+}
+
+/**
+ * Removes every campaign property, except the three a pageview keeps, cut to
+ * `CAMPAIGN_MAX_LENGTH`. Empty values (posthog-js sends null for the ones the
+ * address lacks) are removed too.
+ */
+function cutCampaign(properties: Properties, keep: boolean): void {
+  for (const key of Object.keys(properties)) {
+    const name = campaignParam(key);
+    if (name === null) continue;
+    const value = properties[key];
+    if (keep && (PAGEVIEW_CAMPAIGN as readonly string[]).includes(name) && typeof value === "string" && value !== "") {
+      properties[key] = value.slice(0, CAMPAIGN_MAX_LENGTH);
+    } else {
+      delete properties[key];
+    }
+  }
+}
 
 /** The URL without its query string and hash. Text that isn't a URL is kept as it is. */
 export function stripUrl(value: unknown): unknown {
@@ -96,11 +170,38 @@ export function maskAttribute(name: string, value: string): string {
   return URL_ATTRIBUTES.has(key) ? (stripUrl(value) as string) : value;
 }
 
-type Properties = Record<string, unknown>;
+/** Text that reads as an absolute URL or a path: no spaces, starts with `http(s)://` or `/`. */
+const URL_LIKE = /^(?:https?:\/\/|\/)\S*$/i;
+
+/**
+ * A copy with the query and hash cut from every URL-like string at any depth:
+ * nested objects such as `$web_vitals_<metric>_event` (its `$current_url`,
+ * `navigationURL`, performance `entries`) carry the full address.
+ */
+/** Nesting deeper than this is removed, never sent unchecked. */
+export const MAX_DEPTH = 10;
+
+function stripDeep(value: unknown, depth = 0): unknown {
+  if (typeof value === "string") return URL_LIKE.test(value) ? stripUrl(value) : value;
+  if (typeof value !== "object" || value === null) return value;
+  if (depth > MAX_DEPTH) return undefined;
+  // Native objects (a PerformanceEntry) keep their fields on the prototype;
+  // their JSON form is what would be sent.
+  const toJSON = (value as { toJSON?: unknown }).toJSON;
+  if (typeof toJSON === "function") return stripDeep(toJSON.call(value), depth + 1);
+  if (Array.isArray(value)) return value.map((item) => stripDeep(item, depth + 1));
+  const copy: Properties = {};
+  for (const [key, item] of Object.entries(value)) copy[key] = stripDeep(item, depth + 1);
+  return copy;
+}
 
 function stripUrls(properties: Properties | undefined): Properties | undefined {
   if (!properties) return properties;
-  const copy: Properties = { ...properties };
+  const copy: Properties = {};
+  for (const [key, value] of Object.entries(properties)) {
+    // Replay records keep their own rules (stripSnapshotUrls, maskAttribute).
+    copy[key] = key === "$snapshot_data" ? value : stripDeep(value);
+  }
   for (const key of URL_PROPERTIES) {
     if (key in copy) copy[key] = stripUrl(copy[key]);
   }
@@ -139,13 +240,25 @@ export function sanitizeEvent<T extends AnalyticsEvent>(event: T | null): T | nu
     const allowed = EVENT_PROPERTIES[name];
     if (name.startsWith("$") ? !POSTHOG_EVENTS.has(name) : allowed === undefined) return null;
     const properties = stripUrls(event.properties);
+    const $set = stripUrls(event.$set);
+    const $set_once = stripUrls(event.$set_once);
+    const keepCampaign = name === "$pageview";
+    for (const bag of [properties, $set, $set_once]) if (bag) cutCampaign(bag, keepCampaign);
     if (properties) for (const key of SDK_REMOVED) delete properties[key];
-    const own = Object.keys(properties ?? {}).filter((key) => !key.startsWith("$") && !SDK_KEPT.has(key));
-    if (own.some((key) => !(allowed ?? []).includes(key))) return null;
+    const own = Object.keys(properties ?? {}).filter(
+      (key) => !key.startsWith("$") && !SDK_KEPT.has(key) && !(keepCampaign && campaignParam(key) !== null),
+    );
+    if (name.startsWith("$")) {
+      // A PostHog event is never dropped for a property: the property goes.
+      for (const key of own) delete properties?.[key];
+    } else if (own.some((key) => !(allowed ?? []).includes(key))) {
+      // One of ours with a property outside its allow-list is a bug: send nothing.
+      return null;
+    }
     if (properties && name === "$snapshot" && "$snapshot_data" in properties) {
       properties.$snapshot_data = stripSnapshotUrls(properties.$snapshot_data);
     }
-    return { ...event, properties, $set: stripUrls(event.$set), $set_once: stripUrls(event.$set_once) } as T;
+    return { ...event, properties, $set, $set_once } as T;
   } catch {
     return null;
   }

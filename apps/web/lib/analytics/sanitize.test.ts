@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { maskAttribute, sanitizeEvent, stripUrl } from "./sanitize";
+import { MAX_DEPTH, maskAttribute, sanitizeEvent, stripUrl } from "./sanitize";
 
 describe("stripUrl", () => {
   it.each([
@@ -52,9 +52,125 @@ describe("sanitizeEvent", () => {
     expect(out?.properties).toEqual({ $browser: "x" });
   });
 
-  it("drops an event that carries a property outside the allow-list", () => {
-    expect(sanitizeEvent({ event: "$pageview", properties: { message: "Hello" } })).toBeNull();
-    expect(sanitizeEvent({ event: "$exception", properties: { email: "a@b.test" } })).toBeNull();
+  it("removes a plain property outside the allow-list from a PostHog event, never dropping it", () => {
+    expect(sanitizeEvent({ event: "$pageview", properties: { message: "Hello", $browser: "x" } })?.properties).toEqual({
+      $browser: "x",
+    });
+    expect(sanitizeEvent({ event: "$exception", properties: { email: "a@b.test", $exception_list: [] } })?.properties).toEqual({
+      $exception_list: [],
+    });
+  });
+
+  it("keeps utm_source, utm_medium and utm_campaign on a pageview, cut to 100 characters, and removes the rest", () => {
+    const out = sanitizeEvent({
+      event: "$pageview",
+      properties: {
+        $current_url: "https://site.test/en?utm_source=news&utm_term=x",
+        utm_source: "news",
+        utm_medium: "email",
+        utm_campaign: "c".repeat(150),
+        utm_term: "x",
+        utm_content: "y",
+        gclid: "abc",
+        fbclid: null,
+        $session_entry_utm_source: "news",
+        $session_entry_utm_term: "x",
+        $session_entry_gclid: "abc",
+        $session_entry_url: "https://site.test/en?utm_source=news",
+        distinct_id: "anon",
+      },
+      $set_once: { $initial_utm_source: "news", $initial_utm_term: "x", $initial_gclid: "abc", $initial_fbclid: null },
+    });
+    expect(out?.properties).toEqual({
+      $current_url: "https://site.test/en",
+      utm_source: "news",
+      utm_medium: "email",
+      utm_campaign: "c".repeat(100),
+      $session_entry_utm_source: "news",
+      $session_entry_url: "https://site.test/en",
+      distinct_id: "anon",
+    });
+    expect(out?.$set_once).toEqual({ $initial_utm_source: "news" });
+  });
+
+  it("removes every campaign property from other events, so they aren't dropped", () => {
+    const campaign = { utm_source: "news", utm_term: "x", gclid: "abc", li_fat_id: null, $session_entry_utm_source: "news" };
+    expect(sanitizeEvent({ event: "signed_up", properties: { locale: "en", ...campaign } })?.properties).toEqual({ locale: "en" });
+    expect(sanitizeEvent({ event: "$web_vitals", properties: { $web_vitals_LCP_value: 1, ...campaign } })?.properties).toEqual({
+      $web_vitals_LCP_value: 1,
+    });
+  });
+
+  it("strips the query and hash from URLs nested in a web vitals event", () => {
+    const url = "https://site.test/en/services?utm_source=news&email=a@b.test#x";
+    const out = sanitizeEvent({
+      event: "$web_vitals",
+      properties: {
+        $current_url: url,
+        $web_vitals_FCP_value: 812,
+        // The plugin copies the whole web-vitals metric (posthog-js 1.450).
+        $web_vitals_FCP_event: {
+          name: "FCP",
+          value: 812,
+          rating: "good",
+          delta: 812,
+          id: "v5-1",
+          navigationType: "navigate",
+          entries: [{ name: "first-contentful-paint", entryType: "paint", startTime: 812 }],
+          attribution: { timeToFirstByte: 90, navigationEntry: { name: url, entryType: "navigation" } },
+          $current_url: url,
+          navigationURL: url,
+          timestamp: 1,
+        },
+      },
+    });
+    expect(JSON.stringify(out)).not.toMatch(/[?#]|email|utm/);
+    expect(out?.properties?.$web_vitals_FCP_event).toMatchObject({
+      name: "FCP",
+      $current_url: "https://site.test/en/services",
+      navigationURL: "https://site.test/en/services",
+      attribution: { timeToFirstByte: 90, navigationEntry: { name: "https://site.test/en/services" } },
+    });
+  });
+
+  it("keeps the fields of a native entry (toJSON), with its URL stripped", () => {
+    class Entry {
+      get name() {
+        return "https://site.test/en?email=a@b.test";
+      }
+      get entryType() {
+        return "navigation";
+      }
+      toJSON() {
+        return { name: this.name, entryType: this.entryType, startTime: 0 };
+      }
+    }
+    const out = sanitizeEvent({
+      event: "$web_vitals",
+      properties: { $web_vitals_LCP_event: { name: "LCP", entries: [new Entry()] } },
+    });
+    expect(out?.properties?.$web_vitals_LCP_event).toEqual({
+      name: "LCP",
+      entries: [{ name: "https://site.test/en", entryType: "navigation", startTime: 0 }],
+    });
+  });
+
+  it("removes nesting deeper than MAX_DEPTH instead of sending it unchecked", () => {
+    let deep: Record<string, unknown> = { url: "https://site.test/en?token=1" };
+    for (let level = 0; level < MAX_DEPTH + 2; level++) deep = { next: deep };
+    const out = sanitizeEvent({ event: "$web_vitals", properties: { $web_vitals_CLS_event: deep } });
+    expect(out).not.toBeNull();
+    expect(JSON.stringify(out)).not.toMatch(/token|\?/);
+  });
+
+  it("keeps text that isn't a URL as it is, at any depth", () => {
+    const out = sanitizeEvent({
+      event: "$exception",
+      properties: { $exception_list: [{ type: "Error", value: "Expected ? here", stacktrace: { frames: [{ filename: "/_next/a.js?v=1" }] } }] },
+    });
+    expect(out?.properties?.$exception_list).toEqual([
+      { type: "Error", value: "Expected ? here", stacktrace: { frames: [{ filename: "/_next/a.js" }] } },
+    ]);
   });
 
   it("keeps our listed events with their allowed properties only", () => {
