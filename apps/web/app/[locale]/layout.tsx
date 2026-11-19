@@ -6,6 +6,8 @@ import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { Analytics } from "@/components/analytics/analytics";
 import { ConsentChoice } from "@/components/analytics/consent-choice";
+import { ConsentSpacer } from "@/components/consent-banner";
+import { SkipLink } from "@/components/skip-link";
 import { ThemeProvider } from "@/components/theme-provider";
 import { localeDirection, routing } from "@/i18n/routing";
 import { OG_LOCALES, siteUrl, TITLE_TEMPLATE } from "@/lib/seo";
@@ -68,8 +70,16 @@ export default async function LocaleLayout({
             the auth pages mount it in their layouts (AppClerkProvider), and
             public pages load it after idle (LazyClerk).
           */}
-          <ThemeProvider>{children}</ThemeProvider>
+          {/*
+            Keyboard order: the skip link, then the cookie banner (fixed at the
+            bottom of the screen, but early in the page so it's reached first),
+            then the page. The banner's spacer stays last, so the page still
+            ends with room for it.
+          */}
+          <SkipLink />
           <ConsentChoice />
+          <ThemeProvider>{children}</ThemeProvider>
+          <ConsentSpacer />
           <Analytics />
         </NextIntlClientProvider>
       </body>

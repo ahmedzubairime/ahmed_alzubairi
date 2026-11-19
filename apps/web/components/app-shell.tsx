@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { CompactHeader } from "./compact-header";
 import { NavLink } from "./nav-link";
 import { SignOutButton } from "./sign-out-button";
-import { MAIN_CONTENT_ID, SkipLink } from "./skip-link";
+import { MAIN_CONTENT_ID } from "./skip-link";
 
 export type AppShellLink = { href: string; label: string };
 
@@ -23,7 +23,6 @@ export function AppShell({
 }) {
   return (
     <>
-      <SkipLink />
       <CompactHeader>
         <SignOutButton />
       </CompactHeader>
