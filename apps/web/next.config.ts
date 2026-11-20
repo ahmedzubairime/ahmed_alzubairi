@@ -53,8 +53,12 @@ const nextConfig: NextConfig = {
       { source: "/ingest/:path*", destination: "https://eu.i.posthog.com/:path*" },
     ];
   },
-  // No skipTrailingSlashRedirect: it made "/ar/about/" answer 200 next to
-  // "/ar/about". PostHog's "/ingest/e/" takes a 308 to "/ingest/e" first.
+  // PostHog posts to "/ingest/e/" and "/ingest/i/v0/e/", partly with
+  // keepalive/sendBeacon. Next's trailing-slash 308 runs before rewrites, and a
+  // keepalive request that meets it may never finish, so events were lost (T12).
+  // Next's redirect is off; proxy.ts sends page paths ending in "/" to the
+  // slash-less URL itself, so "/ar/about/" still 308s to "/ar/about".
+  skipTrailingSlashRedirect: true,
   turbopack: {
     rules: {
       "*.css": {
