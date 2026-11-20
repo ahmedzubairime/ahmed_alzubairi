@@ -27,6 +27,9 @@ describe("maskIds", () => {
     [`/en/dashboard/document-requests/${UUID}`, "/en/dashboard/document-requests/:id"],
     ["/en/dashboard/training/42", "/en/dashboard/training/:id"],
     [`/api/consultations/${UUID}/messages`, "/api/consultations/:id/messages"],
+    [`/en/account/consultations/%36${UUID.slice(1)}`, "/en/account/consultations/:id"],
+    ["/ar/dashboard/clients/%75ser_3MLNrB0rI1hd19tRinVFY9qZBt9", "/ar/dashboard/clients/:id"],
+    ["/en/dashboard/training/%34%32", "/en/dashboard/training/:id"],
   ])("%s → %s", (input, output) => {
     expect(maskIds(input)).toBe(output);
   });
@@ -39,6 +42,8 @@ describe("maskIds", () => {
     "/en/projects/user-research",
     "$direct",
     "https://12345.example.test/en",
+    "/en/blog/%E0%A4%A",
+    "/ar/blog/%D9%85%D9%82%D8%A7%D9%84",
   ])("keeps %s", (value) => {
     expect(maskIds(value)).toBe(value);
   });

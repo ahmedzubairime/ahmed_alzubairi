@@ -134,6 +134,17 @@ function pathStart(value: string): number {
   return value.startsWith("/") ? 0 : -1;
 }
 
+/** True when a path segment is id-shaped, as written or percent-decoded ("%36…" is "6…"). */
+function isIdSegment(segment: string): boolean {
+  let decoded = segment;
+  try {
+    decoded = decodeURIComponent(segment);
+  } catch {
+    // A malformed escape is classified as written.
+  }
+  return ID_SHAPED.some((shape) => shape.test(decoded));
+}
+
 /** The URL or path with every id-shaped segment replaced by `:id`. Other text is kept. */
 export function maskIds(value: string): string {
   const start = pathStart(value);
@@ -141,7 +152,7 @@ export function maskIds(value: string): string {
   const path = value
     .slice(start)
     .split("/")
-    .map((segment) => (ID_SHAPED.some((shape) => shape.test(segment)) ? ID_SEGMENT : segment))
+    .map((segment) => (isIdSegment(segment) ? ID_SEGMENT : segment))
     .join("/");
   return value.slice(0, start) + path;
 }
