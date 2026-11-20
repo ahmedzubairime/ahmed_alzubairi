@@ -6,7 +6,7 @@ The PRD's four stages map to these phases: stage 1 is Phases 1–2, stage 2 is P
 
 ## Rules
 
-- Build phases in this order. Don't add, remove, or reorder phases.
+- Build phases in the order they appear in this file. Don't add, remove, or reorder phases. Phase 8 was added later by the product owner: it runs after Phase 6 and before Phase 7, so the site launches with the new design.
 - Every phase after Phase 0 has two parallel lanes, one per developer, so nobody waits.
 - The designer owns no lane. Design tasks run before a lane, when developers need their tokens or components, or after a lane merges, as polish on those pages. A design task never runs at the same time as a task on the same paths.
 - Each phase is one board in JSM HQ. The lead creates the board and its tasks there, with the product owner, before the phase starts. The next phase can be broken down while the current one is being built.
@@ -136,6 +136,64 @@ Lane A adds a newsletter checkbox to the email gate after Lane B is merged.
 | **B — SEO + performance** | Metadata per page and language, `hreflang`, sitemap, robots, Open Graph, `noindex` rules. Image and bundle work to reach the 3-second target. Accessibility pass. | §6.24, §13 |
 
 **Done when:** PostHog shows the events with no personal data; no replay exists for account or dashboard pages; `hreflang` appears only where a translation exists; the home page loads in under 3 seconds on a throttled mobile network.
+
+---
+
+## Phase 8 — Design refresh
+
+**Runs after Phase 6, before Phase 7.**
+
+**Goal:** the public site has a soul. A visitor feels calm, earned trust, and leaves feeling they met Ahmed, in his own voice, not that they browsed a consultant's website. A new identity, approved by Ahmed, built on every public page before launch.
+
+**Why:** the current pages follow the default AI pattern: a gold bar over a heading, two buttons and a framed photo, then grids of identical cards on every section. Its palette (ivory, serif, gold) is the most common "premium" cliché of generated sites. §13 fixed colors and fonts but said nothing about feeling, voice, layout or what to avoid, and the designer had no design skills and no way to see its own work.
+
+**Source of truth:** `docs/design/SOUL.md` (what it must feel like, and why) and, once approved, `docs/design/DESIGN.md` (how it looks). Read `SOUL.md` before any Phase 8 work.
+
+### Already in place
+
+- Every agent has three design skills, committed in `.claude/skills` and `.agents/skills`: Anthropic's `frontend-design`, `impeccable` (critique, polish, audit, and the `detect` scanner), and Vercel's `web-design-guidelines`. HQ never replaces skills the repo tracks.
+- Every developer sandbox can download Playwright's browser, and has Chromium at `/usr/bin/chromium`.
+- No Figma. Claude Design is the design tool.
+
+### Before the board (product owner and Ahmed)
+
+Agents don't start Phase 8 until these are done. The lead plans the board after step 5.
+
+1. **Placeholder photos.** Generate the images listed in `docs/design/images/README.md` with the prompts there, and save them in that folder under the names given. They are dev placeholders.
+2. **Explore in Claude Design** (claude.ai → Design, included in the Claude Pro/Max plan). Attach `SOUL.md`, `project.md` and the photos, and paste `docs/design/claude-design-prompt.md`. It produces three directions, Arabic first.
+3. **Ahmed picks one direction**, in both languages and both themes. With it he settles §14 decision 3 (fonts and colors), decision 1 (name and logo) if he's ready, and three points where the soul meets §6.2: whether the quick stats animate, how the hero is composed, and whether the home page gets a short letter in his voice.
+4. **Ahmed's voice.** Ahmed writes, or approves, the words the design depends on: the letter (if kept), one sentence of his for each main page, and a first-person rewrite of the hero and section intros. A scan of his real signature if the letter is kept. Draft copy from Claude Design is never shipped as his words.
+5. **Hand off.** Ask Claude Design for the handoff. Put `DESIGN.md`, the bundle, and a screenshot of every screen (Arabic and English, light and dark) in `docs/design/`.
+6. **DaVinci's role in HQ** (Settings → Team → DaVinci → role). Replace its first bullet with: "`docs/design/SOUL.md` and `docs/design/DESIGN.md` are your source of truth; §13 keeps the rules that aren't style. Don't invent a new style, colors or fonts. If you think the design should change, ask the product owner."
+
+**Keys needed:** none. The inputs above are the product owner's and Ahmed's job.
+
+**Contract change, only if Ahmed keeps the letter:** a new home section (the letter text in both languages, and the signature image) is a contract change. The lead plans it as the first task of the phase, and the product owner approves it, as `CLAUDE.md` requires.
+
+### Rules for this phase
+
+- `DESIGN.md` replaces §13's look. §13 keeps the rules that aren't style: contrast, RTL, states, responsive, performance, accessibility. Where they disagree with `SOUL.md`, ask the product owner.
+- Build to the approved mockups. If a screen has no mockup, follow `SOUL.md` and `DESIGN.md` and ask DaVinci, never the model's defaults.
+- Nothing from "What breaks the soul" in `SOUL.md`, and nothing `DESIGN.md` bans.
+- UI copy in `messages/` follows the voice in `SOUL.md`: first person, measured, no hype. Copy that changes meaning, and any button label named in `project.md`, needs the product owner's approval.
+- Look at your work. Every UI PR shows before and after screenshots at 375 px and 1280 px, in Arabic and English, light and dark, next to the matching mockup.
+- The 3-second mobile target from Phase 6 still holds. Fonts and motion count toward it.
+
+| Lane | Includes | project.md |
+| --- | --- | --- |
+| **Foundation — DaVinci, before the lanes** | `DESIGN.md` into code: tokens for both themes in `globals.css`, the chosen fonts with `next/font`, an Arabic and an English type scale (Arabic sits larger, with more line height), spacing, radius, motion. Restyle `components/ui` and the shared section shell. Optimize the **design** images into `apps/web/public/images/`. A `pnpm screenshots` script (Playwright, using the sandbox's Chromium) that captures the public pages at both widths, both languages, both themes. Update §13 and §14 in `project.md` to point to `docs/design/`. | §13, §14 |
+| **A — Identity pages** | Header, footer, mobile menu. Home, every section, including the letter if approved. About, expertise, services. | §6.1–6.5, §6.11 |
+| **B — Work and reading pages** | Projects as short stories, clients and testimonials, the public document list, training, blog, resources, media, FAQ, contact, legal pages, 404. Empty, loading and error states on all of them. Clerk sign-in and sign-up themed with the new tokens. | §6.6–6.14, §6.25 |
+
+Both lanes build on Foundation, so it merges first. The product owner uploads the **content** placeholder photos to the dev project through the dashboard (hero photo, project galleries) once Foundation is merged.
+
+After each lane merges, DaVinci runs a polish task on those pages: `impeccable` critique and polish against the mockups and `SOUL.md`, and Vercel's guidelines check.
+
+The account and dashboard pages get the new tokens only, not a redesign. Lane B checks they still pass contrast and read well in both themes.
+
+**Done when:** Ahmed approved one direction, and `SOUL.md`, `DESIGN.md` and the handoff are in `docs/design/`; every public page matches its mockup on the latest preview, in Arabic and English, light and dark, at 375 px; `impeccable detect`, run against the running app (`detect http://localhost:3000/ar` and `/en`, every public page), finds no anti-patterns; contrast is WCAG AA in both themes; the home page still loads in under 3 seconds on a throttled mobile network; "reduce motion" turns motion off; account and dashboard pages still read correctly; **the soul check passes:** Ahmed and one person outside the team each look at the home page for a minute, then say in their own words what they felt, and it matches the one line in `SOUL.md`; Ahmed approved the preview.
+
+**Before launch (Phase 7):** every placeholder photo of a person is replaced by a real one, with consent. `docs/design/images/README.md` lists the order.
 
 ---
 
